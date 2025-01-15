@@ -12,12 +12,13 @@ screen = pygame.display.set_mode((1024, 600))
 clock = pygame.time.Clock()
 
 # Colors setup
-bground_col   = pygame.Color(  0,   0,   0)
+bground_col = pygame.Color(  0,   0,   0)
 tempo_r_col = pygame.Color(220,   0,   0)
 tempo_w_col = pygame.Color(220, 220, 220)
 tempo_b_col = pygame.Color(  0,   0, 220)
 tempo_u_col = pygame.Color( 60,  60,  60)
 seconds_col = pygame.Color( 11, 156, 215)
+wtmask_col  = pygame.Color(127, 127, 127, 127)
 
 # Timer events
 TEMPO_TICK = pygame.event.custom_type()
@@ -80,7 +81,8 @@ def redraw():
     temp_crd.center = (512,  35)
     
     tempoDraw(tempo_tmw, (95, 40))
-    tempoDraw(tempo_now, (45, 40))
+    pygame.gfxdraw.filled_circle(screen, 95, 40, 30, wtmask_col)
+    tempoDraw(tempo_now, (55, 40))
     
     # build clock
     dt = datetime.now()
