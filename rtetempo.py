@@ -12,7 +12,7 @@ import requests
 from requests.auth import HTTPBasicAuth
 from requests_oauthlib import OAuth2Session
 
-from .const import (
+from const import (
     API_DATE_FORMAT,
     API_KEY_END,
     API_KEY_ERROR,
@@ -101,7 +101,6 @@ class APIWorker(threading.Thread):
         # stopping thread
         _LOGGER.info("Thread stopped")
 
-    @callback
     def signalstop(self, event):
         """Activate the stop flag in order to stop the thread from within."""
         _LOGGER.info(

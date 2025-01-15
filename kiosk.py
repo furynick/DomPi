@@ -2,6 +2,8 @@ import pygame
 import pygame.gfxdraw
 from time import sleep, strftime, time_ns
 from datetime import datetime
+from rtetempo import APIWorker
+from const import FRANCE_TZ
 
 # pygame setup
 pygame.init()
@@ -18,8 +20,18 @@ tempo_u_col = pygame.Color( 60,  60,  60)
 seconds_col = pygame.Color( 11, 156, 215)
 
 # Timer events
+TEMPO_TICK = pygame.event.custom_type()
 HALF_TICK = pygame.event.custom_type()
-pygame.time.set_timer(HALF_TICK, 500)   
+pygame.time.set_timer(TEMPO_TICK, 120000)
+pygame.time.set_timer(HALF_TICK, 500)
+
+# RTE Tempo setup
+api_worker = APIWorker(
+    client_id="ece3f4f6-b4c0-490c-a79a-23d6795603ed",
+    client_secret="1da24e80-1b13-416b-baf9-91a0c652c1a6",
+    adjusted_days=False
+)
+api_worker.start()
 
 # Load assets
 blue_flame = pygame.image.load('blue-flame.png')
@@ -34,26 +46,28 @@ running = True
 cur_time = '66:66'
 cur_date = ''
 cur_temp = '18,3°'
-tempo_day = 2
-tempo_tmw = 0
+tempo_now = 'UNKN'
+tempo_tmw = 'UNKN'
 
 def tempoDraw(state, c):
+    col = tempo_u_col
     match state:
-        case 0:
-            col = tempo_u_col
-        case 1:
+        case 'BLUE':
             col = tempo_b_col
-        case 2:
+        case 'WHITE':
             col = tempo_w_col
-        case 3:
+        case 'RED':
             col = tempo_r_col
             
-    pygame.gfxdraw.aacircle(screen, c[0], c[1], 30, col)
+    pygame.gfxdraw.aacircle(screen, c[0], c[1], 31, col)
     pygame.gfxdraw.filled_circle(screen, c[0], c[1], 30, col)
+    pygame.gfxdraw.aacircle(screen, c[0], c[1], 31, bground_col)
 
-    
 # Redraw full screen function
 def redraw():
+    global tempo_now
+    global tempo_tmw
+
     screen.fill(bground_col)
     date_srf = font_date.render(cur_date, True, "white", None)
     temp_srf = font_temp.render(cur_temp, True, "white", None)
@@ -65,8 +79,8 @@ def redraw():
     temp_crd = temp_srf.get_rect()
     temp_crd.center = (512,  35)
     
-    tempoDraw(0, (95, 40))
-    tempoDraw(3, (45, 40))
+    tempoDraw(tempo_tmw, (95, 40))
+    tempoDraw(tempo_now, (45, 40))
     
     # build clock
     dt = datetime.now()
@@ -81,7 +95,22 @@ def redraw():
     screen.blit(temp_srf,   temp_crd)
     pygame.display.flip()
 
+def tempoUpdate():
+    global tempo_now
+    global tempo_tmw
+
+    tempo_now = 'UNKN'
+    tempo_tmw = 'UNKN'
+    localized_now = datetime.now(FRANCE_TZ)
+    t = api_worker.get_adjusted_days()
+    for tempo_day in t:
+        if tempo_day.Start <= localized_now < tempo_day.End:
+            tempo_now=tempo_day.Value
+        if localized_now < tempo_day.Start:
+            tempo_tmw=tempo_day.Value
+
 # Main loop
+track_tempo = True
 while running:
     # limit to 60fps to prevent CPU overload
     clock.tick(60)
@@ -92,9 +121,17 @@ while running:
             # pygame.QUIT event means the user clicked X to close your window
             case pygame.QUIT:
                 running = False
+            case TEMPO_TICK:
+                tempoUpdate()
 
     cur_time = strftime('%H:%M')
     cur_date = strftime('%A %-d %B %Y')
     redraw()
+    
+    t = api_worker.get_adjusted_days()
+    if t != [] and track_tempo:
+        print(tempoUpdate())
+        track_tempo = False
 
+api_worker.signalstop("Kiosk shutdown")
 pygame.quit()
