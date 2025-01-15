@@ -127,11 +127,6 @@ while running:
     cur_time = strftime('%H:%M')
     cur_date = strftime('%A %-d %B %Y')
     redraw()
-    
-    t = api_worker.get_adjusted_days()
-    if t != [] and track_tempo:
-        print(tempoUpdate())
-        track_tempo = False
 
 api_worker.signalstop("Kiosk shutdown")
 pygame.quit()
