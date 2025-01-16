@@ -25,7 +25,8 @@ sol_max   = 2920.0
 # pygame setup
 pygame.init()
 pygame.font.init()
-screen = pygame.display.set_mode((1024, 600))
+pygame.mouse.set_visible(False)
+screen = pygame.display.set_mode((0, 0), pygame.FULLSCREEN)
 clock  = pygame.time.Clock()
 
 # Colors setup
@@ -40,6 +41,15 @@ bat_chg_col = pygame.Color( 71, 144, 208)
 grid_fw_col = pygame.Color(233, 122, 131)
 grid_bw_col = pygame.Color(212, 222,  95)
 solar_col   = pygame.Color(244, 232,  13)
+
+# Load assets
+background  = pygame.image.load('background.png')
+blue_flame  = pygame.transform.scale(pygame.image.load('blue-flame.png'), (23,50))
+grey_flame  = pygame.transform.scale(pygame.image.load('grey-flame.png'), (23,50))
+font_date   = pygame.font.SysFont('ubuntu', 32)
+font_hour   = pygame.font.Font('Courgette-Regular.ttf', 200)
+font_temp   = pygame.font.SysFont('ubuntu', 65)
+font_batt   = pygame.font.SysFont('ubuntu', 50)
 
 # Timer events
 TEMPO_TICK = pygame.event.custom_type()
@@ -101,15 +111,6 @@ except:
     print("Unknown MQTT connect error")
 else:
     client.loop_start()
-
-# Load assets
-background = pygame.image.load('background.png')
-blue_flame = pygame.transform.scale(pygame.image.load('blue-flame.png'), (23,50))
-grey_flame = pygame.transform.scale(pygame.image.load('grey-flame.png'), (23,50))
-font_date  = pygame.font.SysFont('ubuntu', 32)
-font_hour  = pygame.font.Font('Courgette-Regular.ttf', 200)
-font_temp  = pygame.font.SysFont('ubuntu', 65)
-font_batt  = pygame.font.SysFont('ubuntu', 50)
 
 def tempoDraw(state, c, r):
     col = tempo_u_col

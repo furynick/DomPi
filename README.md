@@ -13,6 +13,9 @@ Domotic UI on Raspi Zero2W/Touchscreen
 
 ## Installation (WiP)
  - raspi-config
+   - set wifi country
+   - enable I2C
+   - set locale
  - wayfire
  - python
  - venv

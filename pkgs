@@ -1,0 +1,1 @@
+sudo apt install seatd xdg-user-dirs libgl1-mesa-dri wayfire xwayland
