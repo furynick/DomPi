@@ -21,3 +21,5 @@ Domotic UI on Raspi Zero2W/Touchscreen
  - venv
  - clone
  - service
+  sudo systemctl link $HOME/DomPi/kiosk.service 
+  sudo systemctl enable kiosk

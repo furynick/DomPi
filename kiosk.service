@@ -1,0 +1,13 @@
+i[Unit]
+Description=Python Kiosk
+After=network.target
+
+[Service]
+Environment=XDG_RUNTIME_DIR=/home/kioskadm/.local/var
+Type=simple
+User=kioskadm
+WorkingDirectory=/home/kioskadm/DomPi
+ExecStart=/usr/bin/wayfire
+
+[Install]
+WantedBy=multi-user.target

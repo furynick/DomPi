@@ -1,3 +1,4 @@
+import locale
 import json
 import pygame
 import pygame.gfxdraw
@@ -9,8 +10,12 @@ from datetime import datetime
 from rtetempo import APIWorker
 from const import FRANCE_TZ
 
+# Set locale
+locale.setlocale(locale.LC_ALL, "fr_FR.UTF-8")
+
 # Global variables
 running   = True
+boiler    = False
 solar_pw  = 0.0
 grid_pw   = 0.0
 batt_pw   = 0.0
@@ -85,7 +90,8 @@ def on_message(client, userdata, message, properties=None):
     payload = json.loads(message.payload)
     match message.topic:
         case "N/d83add91edfc/battery/292/Soc":
-            cur_batt = "%0.1f%%" % float(payload['value'])
+            str = "%0.1f%%" % float(payload['value'])
+            cur_batt = str.replace(".", ",")
         case "N/d83add91edfc/battery/292/Dc/0/Power":
             batt_pw = float(payload['value'])
         case "N/d83add91edfc/grid/30/Ac/Power":
@@ -186,9 +192,12 @@ def buildMainUI():
 
     screen.blit(hour_srf,   hour_crd)
     screen.blit(date_srf,   date_crd)
-    screen.blit(grey_flame, (260, 60))
     screen.blit(temp_srf,   temp_crd)
     screen.blit(batt_srf,   batt_crd)
+    if boiler:
+        screen.blit(blue_flame, (275, 60))
+    else:
+        screen.blit(grey_flame, (275, 60))
     pygame.display.flip()
 
 def tempoUpdate():
