@@ -10,13 +10,17 @@ from rtetempo import APIWorker
 from const import FRANCE_TZ
 
 # Global variables
-running = True
-cur_time = '66:66'
-cur_date = ''
-cur_temp = '18,3°'
-cur_batt = '100.0%'
+running   = True
+solar_pw  = 0.0
+grid_pw   = 0.0
+batt_pw   = 0.0
+cur_temp  = '18,3°'
+cur_batt  = '0.0%'
 tempo_now = 'UNKN'
 tempo_tmw = 'UNKN'
+batt_max  = 5000.0
+grid_max  = 6800.0
+sol_max   = 2920.0
 
 # pygame setup
 pygame.init()
@@ -31,7 +35,11 @@ tempo_w_col = pygame.Color(220, 220, 220)
 tempo_b_col = pygame.Color(  0,   0, 220)
 tempo_u_col = pygame.Color( 60,  60,  60)
 seconds_col = pygame.Color( 11, 156, 215)
-wtmask_col  = pygame.Color(127, 127, 127, 127)
+bat_dch_col = pygame.Color(225, 142, 233)
+bat_chg_col = pygame.Color( 71, 144, 208)
+grid_fw_col = pygame.Color(233, 122, 131)
+grid_bw_col = pygame.Color(212, 222,  95)
+solar_col   = pygame.Color(244, 232,  13)
 
 # Timer events
 TEMPO_TICK = pygame.event.custom_type()
@@ -60,18 +68,20 @@ def on_connect_fail(client, userdata):
 
 def on_message(client, userdata, message, properties=None):
     global cur_batt
+    global solar_pw
+    global grid_pw
+    global batt_pw
 
     payload = json.loads(message.payload)
     match message.topic:
         case "N/d83add91edfc/battery/292/Soc":
-            print(f"{datetime.now()} Received SoC value {payload['value']}")
             cur_batt = "%0.1f%%" % float(payload['value'])
         case "N/d83add91edfc/battery/292/Dc/0/Power":
-            print(f"{datetime.now()} Received Battery value {payload['value']}")
+            batt_pw = float(payload['value'])
         case "N/d83add91edfc/grid/30/Ac/Power":
-            print(f"{datetime.now()} Received Grid value {payload['value']}")
+            grid_pw = float(payload['value'])
         case "N/d83add91edfc/pvinverter/20/Ac/Power":
-            print(f"{datetime.now()} Received Inverter value {payload['value']}")
+            solar_pw = float(payload['value'])
 
 def on_subscribe(client, userdata, mid, qos, properties=None):
     print(f"{datetime.now()} Subscribed with QoS {qos}")
@@ -114,11 +124,38 @@ def tempoDraw(state, c, r):
     pygame.gfxdraw.aacircle(screen, c[0], c[1], r, col)
     pygame.gfxdraw.filled_circle(screen, c[0], c[1], r, col)
 
+def gaugeDrawLine(x, y, n, c):
+    l=18
+    for i in range(5, 1, -1):
+        if n < i:
+            l -= 2
+            x += 1
+    pygame.draw.line(screen, c, (x, y), (x + l, y))
+
+def gaugeDraw(base, pct, col, rev = False):
+    count = int(60 * pct / 100)
+    n = 0
+    
+    if rev:
+        for y in range(base - 60, base - 60 + count):
+            n += 1
+            gaugeDrawLine(767, y, n, col)
+    else:
+        for y in range(base, base - count, -1):
+            n += 1
+            gaugeDrawLine(767, y, n, col)
+
 # Redraw full screen function
-def redraw():
+def buildMainUI():
     global tempo_now
     global tempo_tmw
     global cur_batt
+    global grid_pw
+    global batt_pw
+    global solar_pw
+
+    cur_time = strftime('%H:%M')
+    cur_date = strftime('%A %-d %B %Y')
 
     screen.blit(background, (0, 0))
     date_srf = font_date.render(cur_date, True, "white", None)
@@ -133,13 +170,22 @@ def redraw():
     temp_crd.center = (180,  80)
     batt_crd = batt_srf.get_rect()
     batt_crd.center = (830,  485)
-    
+
     tempoDraw(tempo_now, (863, 68), 17)
     tempoDraw(tempo_tmw, (900, 72), 13)
-    
+    if batt_pw > 0.0:
+        gaugeDraw(390, int( 100.0 * batt_pw / batt_max), bat_chg_col)
+    else:
+        gaugeDraw(390, int(-100.0 * batt_pw / batt_max), bat_dch_col, True)
+    if grid_pw > 0.0:
+        gaugeDraw(299, int( 100.0 * grid_pw / grid_max), grid_fw_col)
+    else:
+        gaugeDraw(299, int(-100.0 * grid_pw / grid_max), grid_bw_col, True)
+    gaugeDraw(208, int(100.0 * solar_pw / sol_max), solar_col)
+
     screen.blit(hour_srf,   hour_crd)
     screen.blit(date_srf,   date_crd)
-    screen.blit(blue_flame, (260, 60))
+    screen.blit(grey_flame, (260, 60))
     screen.blit(temp_srf,   temp_crd)
     screen.blit(batt_srf,   batt_crd)
     pygame.display.flip()
@@ -151,8 +197,7 @@ def tempoUpdate():
     tempo_now = 'UNKN'
     tempo_tmw = 'UNKN'
     localized_now = datetime.now(FRANCE_TZ)
-    t = api_worker.get_adjusted_days()
-    for tempo_day in t:
+    for tempo_day in api_worker.get_adjusted_days():
         if tempo_day.Start <= localized_now < tempo_day.End:
             tempo_now=tempo_day.Value
         if localized_now < tempo_day.Start:
@@ -169,16 +214,22 @@ while running:
         # pygame.QUIT event means the user clicked X to close your window
         if event.type == pygame.QUIT:
             running = False
-        elif event.type ==  MQTT_TICK:
+        elif event.type == pygame.MOUSEMOTION:
+            pass
+        elif event.type == pygame.WINDOWLEAVE:
+            pass
+        elif event.type == pygame.WINDOWENTER:
+            pass
+        elif event.type == pygame.WINDOWCLOSE:
+            pass
+        elif event.type == MQTT_TICK:
             client.publish('R/d83add91edfc/keepalive','{ "keepalive-options" : ["suppress-republish"] }', 2, properties=properties)
-        elif event.type ==  TEMPO_TICK:
+        elif event.type == TEMPO_TICK:
             tempoUpdate()
         else:
             print("Unknown %d", event.type)
 
-    cur_time = strftime('%H:%M')
-    cur_date = strftime('%A %-d %B %Y')
-    redraw()
+    buildMainUI()
 
 api_worker.signalstop("Kiosk shutdown")
 client.disconnect()
