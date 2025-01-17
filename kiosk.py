@@ -36,6 +36,7 @@ clock  = pygame.time.Clock()
 
 # Colors setup
 bground_col = pygame.Color(  0,   0,   0)
+fground_col = pygame.Color(240, 240, 240)
 tempo_r_col = pygame.Color(220,   0,   0)
 tempo_w_col = pygame.Color(220, 220, 220)
 tempo_b_col = pygame.Color(  0,   0, 220)
@@ -49,12 +50,12 @@ solar_col   = pygame.Color(244, 232,  13)
 
 # Load assets
 background  = pygame.image.load('background.png')
-blue_flame  = pygame.transform.scale(pygame.image.load('blue-flame.png'), (23,50))
-grey_flame  = pygame.transform.scale(pygame.image.load('grey-flame.png'), (23,50))
-font_date   = pygame.font.SysFont('ubuntu', 32)
+blue_flame  = pygame.image.load('blue-flame.png')
+grey_flame  = pygame.image.load('grey-flame.png')
 font_hour   = pygame.font.Font('Courgette-Regular.ttf', 200)
-font_temp   = pygame.font.SysFont('ubuntu', 65)
+font_date   = pygame.font.SysFont('ubuntu', 36)
 font_batt   = pygame.font.SysFont('ubuntu', 50)
+font_temp   = pygame.font.SysFont('ubuntu', 65)
 
 # Timer events
 TEMPO_TICK = pygame.event.custom_type()
@@ -165,10 +166,10 @@ def buildMainUI():
     cur_date = strftime('%A %-d %B %Y')
 
     screen.blit(background, (0, 0))
-    date_srf = font_date.render(cur_date, True, "white", None)
-    temp_srf = font_temp.render(cur_temp, True, "white", None)
-    hour_srf = font_hour.render(cur_time, True, "white", None)
-    batt_srf = font_batt.render(cur_batt, True, "white", None)
+    date_srf = font_date.render(cur_date, True, fground_col, None)
+    temp_srf = font_temp.render(cur_temp, True, fground_col, None)
+    hour_srf = font_hour.render(cur_time, True, fground_col, None)
+    batt_srf = font_batt.render(cur_batt, True, fground_col, None)
     date_crd = date_srf.get_rect()
     date_crd.center = (295, 150)
     hour_crd = hour_srf.get_rect()
@@ -195,9 +196,9 @@ def buildMainUI():
     screen.blit(temp_srf,   temp_crd)
     screen.blit(batt_srf,   batt_crd)
     if boiler:
-        screen.blit(blue_flame, (275, 60))
+        screen.blit(blue_flame, (275, 45))
     else:
-        screen.blit(grey_flame, (275, 60))
+        screen.blit(grey_flame, (275, 45))
     pygame.display.flip()
 
 def tempoUpdate():
