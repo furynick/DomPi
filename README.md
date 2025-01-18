@@ -27,7 +27,5 @@ Domotic UI on Raspi Zero2W/Touchscreen
   echo disable_splash=1 | sudo tee -a /boot/firmware/config.txt
   sudo sed -i 's/+console//' /usr/lib/systemd/system/rc-local.service.d/debian.conf
   sudo sed -i 's/$/ logo.nologo loglevel=1 vt.global_cursor_default=0 consoleblank=0 quiet/' /boot/firmware/cmdline.txt
-  sudo apt install seatd xdg-user-dirs libgl1-mesa-dri wayfire xwayland fbi
-
-  pip install -r requirements.txt
-  pip install git+https://github.com/pybluez/pybluez.git
+  sudo apt install seatd xdg-user-dirs libgl1-mesa-dri wayfire xwayland fbi python3-certifi python3-pygame python3-requests python3-requests-oauthlib python3-pydbus python3-elementpath
+  sudo setcap 'cap_net_raw,cap_net_admin+eip' $(readlink -f $(which python3.11))

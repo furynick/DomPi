@@ -14,6 +14,7 @@ from const import FRANCE_TZ
 locale.setlocale(locale.LC_ALL, "fr_FR.UTF-8")
 
 # Global variables
+bt_addr   = "60:6D:C7:70:A6:34"
 running   = True
 boiler    = False
 solar_pw  = 0.0
@@ -105,7 +106,7 @@ def on_subscribe(client, userdata, mid, qos, properties=None):
 
 properties=Properties(PacketTypes.PUBLISH)
 properties.MessageExpiryInterval=5 # in seconds
-client = paho.Client(paho.CallbackAPIVersion.VERSION2, "Kiosk")
+client = paho.Client("Kiosk")
 client.on_connect = on_connect
 client.on_connect_fail = on_connect_fail
 client.on_message = on_message
