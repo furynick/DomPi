@@ -1,3 +1,4 @@
+import platform
 import locale
 import json
 import pygame
@@ -14,6 +15,7 @@ from const import FRANCE_TZ
 locale.setlocale(locale.LC_ALL, "fr_FR.UTF-8")
 
 # Global variables
+tgt_arch  = "aarch64"
 bt_addr   = "60:6D:C7:70:A6:34"
 running   = True
 boiler    = False
@@ -21,7 +23,7 @@ solar_pw  = 0.0
 grid_pw   = 0.0
 batt_pw   = 0.0
 cur_temp  = '18,3°'
-cur_batt  = '0.0%'
+cur_batt  = '0,0%'
 tempo_now = 'UNKN'
 tempo_tmw = 'UNKN'
 batt_max  = 5000.0
@@ -32,7 +34,10 @@ sol_max   = 2920.0
 pygame.init()
 pygame.font.init()
 pygame.mouse.set_visible(False)
-screen = pygame.display.set_mode((0, 0), pygame.FULLSCREEN)
+if (platform.machine() == tgt_arch):
+    screen = pygame.display.set_mode((0, 0), pygame.FULLSCREEN)
+else:
+    screen = pygame.display.set_mode((1024, 600))
 clock  = pygame.time.Clock()
 
 # Colors setup
@@ -54,9 +59,9 @@ background  = pygame.image.load('background.png')
 blue_flame  = pygame.image.load('blue-flame.png')
 grey_flame  = pygame.image.load('grey-flame.png')
 font_hour   = pygame.font.Font('Courgette-Regular.ttf', 200)
-font_date   = pygame.font.SysFont('ubuntu', 36)
-font_batt   = pygame.font.SysFont('ubuntu', 50)
-font_temp   = pygame.font.SysFont('ubuntu', 65)
+font_date   = pygame.font.Font('OpenSans-Medium.ttf', 36)
+font_batt   = pygame.font.Font('OpenSans-Medium.ttf', 50)
+font_temp   = pygame.font.Font('OpenSans-Medium.ttf', 65)
 
 # Timer events
 TEMPO_TICK = pygame.event.custom_type()
@@ -164,7 +169,7 @@ def buildMainUI():
     global solar_pw
 
     cur_time = strftime('%H:%M')
-    cur_date = strftime('%A %-d %B %Y')
+    cur_date = strftime('%A ') + strftime('%d').lstrip('0') + strftime(' %B %Y')
 
     screen.blit(background, (0, 0))
     date_srf = font_date.render(cur_date, True, fground_col, None)
