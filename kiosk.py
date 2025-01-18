@@ -14,9 +14,15 @@ from time import strftime, time_ns
 from datetime import datetime
 from rtetempo import APIWorker
 from const import FRANCE_TZ
+from dataclasses import dataclass
+from collections.abc import Callable
 
-import signal
-import sys
+# Sensitive surfaces
+@dataclass
+class TactileZone:
+    _cb: Callable[[int, str], None]
+    rect: pygame.Rect
+    name: str
 
 # Set locale
 locale.setlocale(locale.LC_ALL, "fr_FR.UTF-8")
@@ -181,6 +187,7 @@ def buildMainUI():
     global grid_pw
     global batt_pw
     global solar_pw
+    global tactile_zones
 
     cur_time = strftime('%H:%M')
     cur_date = strftime('%A ') + strftime('%d').lstrip('0') + strftime(' %B %Y')
@@ -198,6 +205,9 @@ def buildMainUI():
     temp_crd.center = (180,  80)
     batt_crd = batt_srf.get_rect()
     batt_crd.center = (830,  485)
+
+    for zone in tactile_zones:
+        pygame.draw.rect(screen, fground_col, zone.rect, 2, 10)
 
     tempoDraw(tempo_now, (863, 68), 17)
     tempoDraw(tempo_tmw, (900, 72), 13)
@@ -238,6 +248,17 @@ def signal_handler(sig, frame):
     global running
     running = False
 
+def click(duration_ms, name):
+    if duration_ms < 150:
+        print("Short click on", name)
+    else:
+        print("Long click on", name)
+
+tactile_zones = []
+tactile_zones.append(TactileZone(click, pygame.Rect(721, 136, 215, 89), "solar_gauge"))
+tactile_zones.append(TactileZone(click, pygame.Rect(721, 226, 215, 89), "grid_gauge"))
+tactile_zones.append(TactileZone(click, pygame.Rect(721, 316, 215, 89), "batt_gauge"))
+
 signal.signal(signal.SIGINT, signal_handler)
 # Main loop
 while running:
@@ -249,7 +270,7 @@ while running:
         # pygame.QUIT event means the user clicked X to close your window
         if event.type == pygame.QUIT:
             running = False
-        elif event.type == pygame.MOUSEMOTION:
+        elif event.type in [pygame.MOUSEMOTION, pygame.VIDEOEXPOSE, pygame.ACTIVEEVENT, pygame.AUDIODEVICEADDED]:
             pass
         elif event.type in [pygame.FINGERDOWN, pygame.FINGERUP]:
             pass
@@ -257,8 +278,10 @@ while running:
             mouse_press = time_ns()
         elif event.type == pygame.MOUSEBUTTONUP:
             mouse_press = time_ns() - mouse_press
-            print("Click duration", mouse_press)
-        elif event.type in [pygame.WINDOWLEAVE, pygame.WINDOWENTER, pygame.WINDOWCLOSE]:
+            for zone in tactile_zones:
+                if zone.rect.collidepoint(pygame.mouse.get_pos()):
+                    zone._cb(int(mouse_press/1000000), zone.name)
+        elif event.type in [pygame.WINDOWLEAVE, pygame.WINDOWENTER, pygame.WINDOWCLOSE, pygame.WINDOWEXPOSED, pygame.WINDOWSIZECHANGED, pygame.WINDOWSHOWN, pygame.WINDOWHIDDEN, pygame.WINDOWFOCUSGAINED]:
             pass
         elif event.type == MQTT_TICK:
             client.publish('R/d83add91edfc/keepalive','{ "keepalive-options" : ["suppress-republish"] }', 2, properties=properties)
