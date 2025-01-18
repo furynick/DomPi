@@ -106,7 +106,7 @@ def on_subscribe(client, userdata, mid, qos, properties=None):
 
 properties=Properties(PacketTypes.PUBLISH)
 properties.MessageExpiryInterval=5 # in seconds
-client = paho.Client("Kiosk")
+client = paho.Client(paho.CallbackAPIVersion.VERSION2, "Kiosk")
 client.on_connect = on_connect
 client.on_connect_fail = on_connect_fail
 client.on_message = on_message
