@@ -42,6 +42,7 @@ tempo_now = 'UNKN'
 tempo_tmw = 'UNKN'
 cur_batt  = '0,0%'
 cur_temp  = '19.0°'
+cur_hum   = '45%'
 
 # Temperature sensor setup
 i2c = board.I2C()  # uses board.SCL and board.SDA
@@ -79,11 +80,13 @@ font_hour   = pygame.font.Font('Courgette-Regular.ttf', 200)
 font_date   = pygame.font.Font('OpenSans-Medium.ttf', 36)
 font_batt   = pygame.font.Font('OpenSans-Medium.ttf', 50)
 font_temp   = pygame.font.Font('OpenSans-Medium.ttf', 65)
+font_hum    = pygame.font.Font('OpenSans-Medium.ttf', 65)
 
 # Timer events
 TEMPO_TICK = pygame.event.custom_type()
-TEMP_TICK = pygame.event.custom_type()
+TEMP_TICK  = pygame.event.custom_type()
 MQTT_TICK  = pygame.event.custom_type()
+BOILER_OFF = pygame.event.custom_type()
 pygame.time.set_timer(TEMPO_TICK, 120000)
 pygame.time.set_timer(MQTT_TICK,   30000)
 pygame.time.set_timer(TEMP_TICK,    3000)
@@ -184,10 +187,12 @@ def buildMainUI():
     global tempo_tmw
     global cur_batt
     global cur_temp
+    global cur_hum
     global grid_pw
     global batt_pw
     global solar_pw
     global tactile_zones
+    global boiler
 
     cur_time = strftime('%H:%M')
     cur_date = strftime('%A ') + strftime('%d').lstrip('0') + strftime(' %B %Y')
@@ -195,6 +200,7 @@ def buildMainUI():
     screen.blit(background, (0, 0))
     date_srf = font_date.render(cur_date, True, fground_col, None)
     temp_srf = font_temp.render(cur_temp, True, fground_col, None)
+    hum_srf  = font_hum.render (cur_hum , True, fground_col, None)
     hour_srf = font_hour.render(cur_time, True, fground_col, None)
     batt_srf = font_batt.render(cur_batt, True, fground_col, None)
     date_crd = date_srf.get_rect()
@@ -203,11 +209,13 @@ def buildMainUI():
     hour_crd.center = (300, 300)
     temp_crd = temp_srf.get_rect()
     temp_crd.center = (180,  80)
+    hum_crd  = hum_srf.get_rect()
+    hum_crd.center =  (390,  80)
     batt_crd = batt_srf.get_rect()
     batt_crd.center = (830,  485)
 
-    for zone in tactile_zones:
-        pygame.draw.rect(screen, fground_col, zone.rect, 2, 10)
+#    for zone in tactile_zones:
+#        pygame.draw.rect(screen, fground_col, zone.rect, 2, 10)
 
     tempoDraw(tempo_now, (863, 68), 17)
     tempoDraw(tempo_tmw, (900, 72), 13)
@@ -221,10 +229,11 @@ def buildMainUI():
         gaugeDraw(299, int(-100.0 * grid_pw / grid_max), grid_bw_col, True)
     gaugeDraw(208, int(100.0 * solar_pw / sol_max), solar_col)
 
-    screen.blit(hour_srf,   hour_crd)
-    screen.blit(date_srf,   date_crd)
-    screen.blit(temp_srf,   temp_crd)
-    screen.blit(batt_srf,   batt_crd)
+    screen.blit(hour_srf, hour_crd)
+    screen.blit(date_srf, date_crd)
+    screen.blit(temp_srf, temp_crd)
+    screen.blit(hum_srf,  hum_crd)
+    screen.blit(batt_srf, batt_crd)
     if boiler:
         screen.blit(blue_flame, (275, 45))
     else:
@@ -249,15 +258,27 @@ def signal_handler(sig, frame):
     running = False
 
 def click(duration_ms, name):
-    if duration_ms < 150:
+    global boiler
+
+    if duration_ms > 1000: # very long press
         print("Short click on", name)
-    else:
+    elif duration_ms > 150: # long press
         print("Long click on", name)
+        match name:
+            case "boiler":
+                if boiler:
+                    boiler = False
+                else:
+                    boiler = True
+                    pygame.time.set_timer(BOILER_OFF, 20*60000, 1)
+    else: # short press
+        pass
 
 tactile_zones = []
-tactile_zones.append(TactileZone(click, pygame.Rect(721, 136, 215, 89), "solar_gauge"))
-tactile_zones.append(TactileZone(click, pygame.Rect(721, 226, 215, 89), "grid_gauge"))
-tactile_zones.append(TactileZone(click, pygame.Rect(721, 316, 215, 89), "batt_gauge"))
+tactile_zones.append(TactileZone(click, pygame.Rect(721, 136, 215,  89), "solar_gauge"))
+tactile_zones.append(TactileZone(click, pygame.Rect(721, 226, 215,  89), "grid_gauge"))
+tactile_zones.append(TactileZone(click, pygame.Rect(721, 316, 215,  89), "batt_gauge"))
+tactile_zones.append(TactileZone(click, pygame.Rect(270,  40,  38,  70), "boiler"))
 
 signal.signal(signal.SIGINT, signal_handler)
 # Main loop
@@ -289,6 +310,9 @@ while running:
             tempoUpdate()
         elif event.type == TEMP_TICK:
             cur_temp = "%0.1f°" % sensor.temperature
+            cur_hum  = "%d%%" % int(sensor.relative_humidity)
+        elif event.type == BOILER_OFF:
+            boiler = False
         else:
             print("Unknown %d", event.type)
 
