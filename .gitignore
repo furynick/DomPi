@@ -172,3 +172,6 @@ cython_debug/
 grey-flame-orig.png
 blue-flame-orig.png
 background.jpg
+
+# Visual Studio
+.vs
