@@ -1,15 +1,22 @@
 import platform
 import locale
+import signal
+import sys
 import json
 import pygame
 import pygame.gfxdraw
 import paho.mqtt.client as paho
+import board
+from adafruit_htu21d import HTU21D
 from paho.mqtt.properties import Properties
 from paho.mqtt.packettypes import PacketTypes 
-from time import sleep, strftime, time_ns
+from time import strftime, time_ns
 from datetime import datetime
 from rtetempo import APIWorker
 from const import FRANCE_TZ
+
+import signal
+import sys
 
 # Set locale
 locale.setlocale(locale.LC_ALL, "fr_FR.UTF-8")
@@ -22,13 +29,17 @@ boiler    = False
 solar_pw  = 0.0
 grid_pw   = 0.0
 batt_pw   = 0.0
-cur_temp  = '18,3°'
-cur_batt  = '0,0%'
-tempo_now = 'UNKN'
-tempo_tmw = 'UNKN'
 batt_max  = 5000.0
 grid_max  = 6800.0
 sol_max   = 2920.0
+tempo_now = 'UNKN'
+tempo_tmw = 'UNKN'
+cur_batt  = '0,0%'
+cur_temp  = '19.0°'
+
+# Temperature sensor setup
+i2c = board.I2C()  # uses board.SCL and board.SDA
+sensor = HTU21D(i2c)
 
 # pygame setup
 pygame.init()
@@ -65,9 +76,11 @@ font_temp   = pygame.font.Font('OpenSans-Medium.ttf', 65)
 
 # Timer events
 TEMPO_TICK = pygame.event.custom_type()
+TEMP_TICK = pygame.event.custom_type()
 MQTT_TICK  = pygame.event.custom_type()
 pygame.time.set_timer(TEMPO_TICK, 120000)
 pygame.time.set_timer(MQTT_TICK,   30000)
+pygame.time.set_timer(TEMP_TICK,    3000)
 
 # RTE Tempo setup
 api_worker = APIWorker(
@@ -164,6 +177,7 @@ def buildMainUI():
     global tempo_now
     global tempo_tmw
     global cur_batt
+    global cur_temp
     global grid_pw
     global batt_pw
     global solar_pw
@@ -220,8 +234,12 @@ def tempoUpdate():
         if localized_now < tempo_day.Start:
             tempo_tmw=tempo_day.Value
 
+def signal_handler(sig, frame):
+    global running
+    running = False
+
+signal.signal(signal.SIGINT, signal_handler)
 # Main loop
-track_tempo = True
 while running:
     # limit to 60fps to prevent CPU overload
     clock.tick(60)
@@ -233,16 +251,21 @@ while running:
             running = False
         elif event.type == pygame.MOUSEMOTION:
             pass
-        elif event.type == pygame.WINDOWLEAVE:
+        elif event.type in [pygame.FINGERDOWN, pygame.FINGERUP]:
             pass
-        elif event.type == pygame.WINDOWENTER:
-            pass
-        elif event.type == pygame.WINDOWCLOSE:
+        elif event.type == pygame.MOUSEBUTTONDOWN:
+            mouse_press = time_ns()
+        elif event.type == pygame.MOUSEBUTTONUP:
+            mouse_press = time_ns() - mouse_press
+            print("Click duration", mouse_press)
+        elif event.type in [pygame.WINDOWLEAVE, pygame.WINDOWENTER, pygame.WINDOWCLOSE]:
             pass
         elif event.type == MQTT_TICK:
             client.publish('R/d83add91edfc/keepalive','{ "keepalive-options" : ["suppress-republish"] }', 2, properties=properties)
         elif event.type == TEMPO_TICK:
             tempoUpdate()
+        elif event.type == TEMP_TICK:
+            cur_temp = "%0.1f°" % sensor.temperature
         else:
             print("Unknown %d", event.type)
 
