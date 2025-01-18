@@ -62,7 +62,7 @@ font_temp   = pygame.font.SysFont('ubuntu', 65)
 TEMPO_TICK = pygame.event.custom_type()
 MQTT_TICK  = pygame.event.custom_type()
 pygame.time.set_timer(TEMPO_TICK, 120000)
-pygame.time.set_timer(MQTT_TICK,   50000)
+pygame.time.set_timer(MQTT_TICK,   30000)
 
 # RTE Tempo setup
 api_worker = APIWorker(
