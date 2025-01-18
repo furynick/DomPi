@@ -51,6 +51,7 @@ sensor = HTU21D(i2c)
 # pygame setup
 pygame.init()
 pygame.font.init()
+pygame.mixer.init()
 pygame.mouse.set_visible(False)
 if (platform.machine() == tgt_arch):
     screen = pygame.display.set_mode((0, 0), pygame.FULLSCREEN)
@@ -119,8 +120,8 @@ def on_message(client, userdata, message, properties=None):
     payload = json.loads(message.payload)
     match message.topic:
         case "N/d83add91edfc/battery/292/Soc":
-            str = "%0.1f%%" % float(payload['value'])
-            cur_batt = str.replace(".", ",")
+            buf = "%0.1f%%" % float(payload['value'])
+            cur_batt = buf.replace(".", ",")
         case "N/d83add91edfc/battery/292/Dc/0/Power":
             batt_pw = float(payload['value'])
         case "N/d83add91edfc/grid/30/Ac/Power":
@@ -309,7 +310,8 @@ while running:
         elif event.type == TEMPO_TICK:
             tempoUpdate()
         elif event.type == TEMP_TICK:
-            cur_temp = "%0.1f°" % sensor.temperature
+            buf = "%0.1f°" % sensor.temperature
+            cur_temp = buf.replace(".", ",")
             cur_hum  = "%d%%" % int(sensor.relative_humidity)
         elif event.type == BOILER_OFF:
             boiler = False

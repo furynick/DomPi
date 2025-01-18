@@ -4,6 +4,7 @@ After=network.target
 
 [Service]
 Environment=XDG_RUNTIME_DIR=/home/kioskadm/.local/var
+Environment=SDL_AUDIODRIVER=pulseaudio
 Type=simple
 User=kioskadm
 WorkingDirectory=/home/kioskadm/DomPi
