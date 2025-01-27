@@ -30,6 +30,7 @@ locale.setlocale(locale.LC_ALL, "fr_FR.UTF-8")
 # Global variables
 tgt_arch  = "aarch64"
 bt_addr   = "60:6D:C7:70:A6:34"
+first_run = True
 running   = True
 boiler    = False
 solar_pw  = 0.0
@@ -43,6 +44,7 @@ tempo_tmw = 'UNKN'
 cur_batt  = '0,0%'
 cur_temp  = '19.0°'
 cur_hum   = '45%'
+gauge_h   = 80
 
 # Temperature sensor setup
 i2c = board.I2C()  # uses board.SCL and board.SDA
@@ -51,7 +53,7 @@ sensor = HTU21D(i2c)
 # pygame setup
 pygame.init()
 pygame.font.init()
-pygame.mixer.init()
+#pygame.mixer.init()
 pygame.mouse.set_visible(False)
 if (platform.machine() == tgt_arch):
     screen = pygame.display.set_mode((0, 0), pygame.FULLSCREEN)
@@ -71,17 +73,28 @@ bat_dch_col = pygame.Color(225, 142, 233)
 bat_chg_col = pygame.Color( 71, 144, 208)
 grid_fw_col = pygame.Color(233, 122, 131)
 grid_bw_col = pygame.Color(212, 222,  95)
-solar_col   = pygame.Color(244, 232,  13)
+solar_col   = pygame.Color(255, 202,  13)
 
 # Load assets
-background  = pygame.image.load('background.png')
-blue_flame  = pygame.image.load('blue-flame.png')
-grey_flame  = pygame.image.load('grey-flame.png')
-font_hour   = pygame.font.Font('Courgette-Regular.ttf', 200)
-font_date   = pygame.font.Font('OpenSans-Medium.ttf', 36)
-font_batt   = pygame.font.Font('OpenSans-Medium.ttf', 50)
-font_temp   = pygame.font.Font('OpenSans-Medium.ttf', 65)
-font_hum    = pygame.font.Font('OpenSans-Medium.ttf', 65)
+background    = pygame.image.load('images/background.jpg')
+blue_flame    = pygame.image.load('images/blue-flame.png')
+grey_flame    = pygame.image.load('images/grey-flame.png')
+icon_battery  = pygame.image.load('images/icon-battery.png')
+icon_grid     = pygame.image.load('images/icon-grid.png')
+icon_solar    = pygame.image.load('images/icon-solar.png')
+play_disabled = pygame.image.load('images/play-disabled.png')
+play_enabled  = pygame.image.load('images/play-enabled.png')
+pause         = pygame.image.load('images/pause.png')
+next_disabled = pygame.image.load('images/next-disabled.png')
+next_enabled  = pygame.image.load('images/next-enabled.png')
+bt_disabled   = pygame.image.load('images/bt-disabled.png')
+bt_enabled    = pygame.image.load('images/bt-enabled.png')
+font_hour     = pygame.font.Font('fonts/Courgette-Regular.ttf', 200)
+font_text     = pygame.font.Font('fonts/OpenSans-Medium.ttf', 24)
+font_date     = pygame.font.Font('fonts/OpenSans-Medium.ttf', 36)
+font_batt     = pygame.font.Font('fonts/OpenSans-Medium.ttf', 50)
+font_temp     = pygame.font.Font('fonts/OpenSans-Medium.ttf', 65)
+font_hum      = pygame.font.Font('fonts/OpenSans-Medium.ttf', 65)
 
 # Timer events
 TEMPO_TICK = pygame.event.custom_type()
@@ -101,10 +114,13 @@ api_worker = APIWorker(
 api_worker.start()
 
 # MQTT client setup
+def on_log(client, userdata, level, buf):
+    print("log: ",buf)
+
 def on_connect(client, userdata, flags, reason_code, properties=None):
-    client.subscribe(topic="N/d83add91edfc/battery/292/Soc")
-    client.subscribe(topic="N/d83add91edfc/battery/292/Dc/0/Power")
+    client.subscribe(topic="N/d83add91edfc/battery/291/Soc")
     client.subscribe(topic="N/d83add91edfc/grid/30/Ac/Power")
+    client.subscribe(topic="N/d83add91edfc/battery/291/Dc/0/Power")
     client.subscribe(topic="N/d83add91edfc/pvinverter/20/Ac/Power")
     client.publish('R/d83add91edfc/keepalive','{ "keepalive-options" : ["suppress-republish"] }', 2, properties=properties)
 
@@ -119,10 +135,10 @@ def on_message(client, userdata, message, properties=None):
 
     payload = json.loads(message.payload)
     match message.topic:
-        case "N/d83add91edfc/battery/292/Soc":
+        case "N/d83add91edfc/battery/291/Soc":
             buf = "%0.1f%%" % float(payload['value'])
             cur_batt = buf.replace(".", ",")
-        case "N/d83add91edfc/battery/292/Dc/0/Power":
+        case "N/d83add91edfc/battery/291/Dc/0/Power":
             batt_pw = float(payload['value'])
         case "N/d83add91edfc/grid/30/Ac/Power":
             grid_pw = float(payload['value'])
@@ -135,6 +151,7 @@ def on_subscribe(client, userdata, mid, qos, properties=None):
 properties=Properties(PacketTypes.PUBLISH)
 properties.MessageExpiryInterval=5 # in seconds
 client = paho.Client(paho.CallbackAPIVersion.VERSION2, "Kiosk")
+#client.on_log = on_log
 client.on_connect = on_connect
 client.on_connect_fail = on_connect_fail
 client.on_message = on_message
@@ -170,11 +187,12 @@ def gaugeDrawLine(x, y, n, c):
     pygame.draw.line(screen, c, (x, y), (x + l, y))
 
 def gaugeDraw(base, pct, col, rev = False):
-    count = int(60 * pct / 100)
+    count = int(gauge_h * pct / 100)
     n = 0
     
+    pygame.draw.rect(screen, fground_col, (765, base - gauge_h - 2, 23, gauge_h + 6), 0, 8)
     if rev:
-        for y in range(base - 60, base - 60 + count):
+        for y in range(base - gauge_h, base - gauge_h + count):
             n += 1
             gaugeDrawLine(767, y, n, col)
     else:
@@ -194,52 +212,83 @@ def buildMainUI():
     global solar_pw
     global tactile_zones
     global boiler
+    global first_run
 
     cur_time = strftime('%H:%M')
     cur_date = strftime('%A ') + strftime('%d').lstrip('0') + strftime(' %B %Y')
 
     screen.blit(background, (0, 0))
     date_srf = font_date.render(cur_date, True, fground_col, None)
-    temp_srf = font_temp.render(cur_temp, True, fground_col, None)
-    hum_srf  = font_hum.render (cur_hum , True, fground_col, None)
-    hour_srf = font_hour.render(cur_time, True, fground_col, None)
-    batt_srf = font_batt.render(cur_batt, True, fground_col, None)
     date_crd = date_srf.get_rect()
     date_crd.center = (295, 150)
+
+    hour_srf = font_hour.render(cur_time, True, fground_col, None)
     hour_crd = hour_srf.get_rect()
     hour_crd.center = (300, 300)
+
+    temp_srf = font_temp.render(cur_temp, True, fground_col, None)
     temp_crd = temp_srf.get_rect()
     temp_crd.center = (180,  80)
+
+    hum_srf  = font_hum.render (cur_hum , True, fground_col, None)
     hum_crd  = hum_srf.get_rect()
     hum_crd.center =  (390,  80)
+
+    batt_srf = font_batt.render(cur_batt, True, fground_col, None)
     batt_crd = batt_srf.get_rect()
     batt_crd.center = (830,  485)
 
-#    for zone in tactile_zones:
-#        pygame.draw.rect(screen, fground_col, zone.rect, 2, 10)
+    text_srf = font_text.render('Tempo', True, fground_col, None)
+    text_crd = text_srf.get_rect()
+    text_crd.center = (788,   65)
 
-    tempoDraw(tempo_now, (863, 68), 17)
-    tempoDraw(tempo_tmw, (900, 72), 13)
-    if batt_pw > 0.0:
-        gaugeDraw(390, int( 100.0 * batt_pw / batt_max), bat_chg_col)
-    else:
-        gaugeDraw(390, int(-100.0 * batt_pw / batt_max), bat_dch_col, True)
+#    for zone in tactile_zones:
+#        pygame.draw.rect(screen, fground_col, zone.rect, 1, 10)
+
+    tempoDraw(tempo_now, (863, 63), 17)
+    tempoDraw(tempo_tmw, (900, 67), 13)
+    pygame.draw.rect(screen, fground_col, (692, 112, 269, 432), 2, 33)
+    gaugeDraw(216, int(100.0 * solar_pw / sol_max), solar_col)
     if grid_pw > 0.0:
-        gaugeDraw(299, int( 100.0 * grid_pw / grid_max), grid_fw_col)
+        gaugeDraw(327, int( 100.0 * grid_pw / grid_max), grid_fw_col)
     else:
-        gaugeDraw(299, int(-100.0 * grid_pw / grid_max), grid_bw_col, True)
-    gaugeDraw(208, int(100.0 * solar_pw / sol_max), solar_col)
+        gaugeDraw(327, int(-100.0 * grid_pw / grid_max), grid_bw_col, True)
+    if batt_pw > 0.0:
+        gaugeDraw(438, int( 100.0 * batt_pw / batt_max), bat_chg_col)
+    else:
+        gaugeDraw(438, int(-100.0 * batt_pw / batt_max), bat_dch_col, True)
 
     screen.blit(hour_srf, hour_crd)
     screen.blit(date_srf, date_crd)
     screen.blit(temp_srf, temp_crd)
     screen.blit(hum_srf,  hum_crd)
     screen.blit(batt_srf, batt_crd)
+    screen.blit(text_srf, text_crd)
     if boiler:
-        screen.blit(blue_flame, (275, 45))
+        screen.blit(blue_flame, (275, 50))
     else:
-        screen.blit(grey_flame, (275, 45))
+        screen.blit(grey_flame, (275, 50))
+    r = screen.blit(icon_solar,     (830, 138))
+    if first_run:
+      tactile_zones.append(TactileZone(click, r, "solar"))
+    r = screen.blit(icon_grid,      (830, 251))
+    if first_run:
+      tactile_zones.append(TactileZone(click, r, "grid"))
+    r = screen.blit(icon_battery,   (830, 361))
+    if first_run:
+      tactile_zones.append(TactileZone(click, r, "battery"))
+    r = screen.blit(play_disabled , (225, 453))
+    if first_run:
+      tactile_zones.append(TactileZone(click, r, "play"))
+    r = screen.blit(next_disabled,  (322, 453))
+    if first_run:
+      tactile_zones.append(TactileZone(click, r, "next"))
+    r = screen.blit(bt_disabled,    (427, 453))
+    if first_run:
+      tactile_zones.append(TactileZone(click, r, "bt"))
+
     pygame.display.flip()
+    first_run = False
 
 def tempoUpdate():
     global tempo_now
@@ -276,10 +325,7 @@ def click(duration_ms, name):
         pass
 
 tactile_zones = []
-tactile_zones.append(TactileZone(click, pygame.Rect(721, 136, 215,  89), "solar_gauge"))
-tactile_zones.append(TactileZone(click, pygame.Rect(721, 226, 215,  89), "grid_gauge"))
-tactile_zones.append(TactileZone(click, pygame.Rect(721, 316, 215,  89), "batt_gauge"))
-tactile_zones.append(TactileZone(click, pygame.Rect(270,  40,  38,  70), "boiler"))
+tactile_zones.append(TactileZone(click, pygame.Rect(270,  35,  48,  70), "boiler"))
 
 signal.signal(signal.SIGINT, signal_handler)
 # Main loop
@@ -321,5 +367,6 @@ while running:
     buildMainUI()
 
 api_worker.signalstop("Kiosk shutdown")
+client.loop_stop()
 client.disconnect()
 pygame.quit()
