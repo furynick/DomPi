@@ -21,8 +21,6 @@ Domotic UI on Raspi Zero2W/Touchscreen
  - venv
  - clone
  - service
-  sudo systemctl link $HOME/DomPi/kiosk.service
-  sudo systemctl enable kiosk
   sudo systemctl disable getty@tty1
   echo disable_splash=1 | sudo tee -a /boot/firmware/config.txt
   sudo sed -i 's/+console//' /usr/lib/systemd/system/rc-local.service.d/debian.conf
@@ -35,3 +33,5 @@ Domotic UI on Raspi Zero2W/Touchscreen
   source .venv/bin/activate
   pip install wheel
   pip install -r requirements.txt
+  sudo systemctl link $HOME/DomPi/kiosk.service
+  sudo systemctl enable kiosk

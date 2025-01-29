@@ -141,23 +141,26 @@ def on_message(client, userdata, message, properties=None):
 
     try:
         payload = json.loads(message.payload)
+        value = float(payload['value'])
     except json.decoder.JSONDecodeError as e:
         print("Error decoding JSON", message)
+        value = 0.0
     except ValueError as e:
         print("Error decoding", message)
+        value = 0.0
     except TypeError as e:
         print("Invalid type", message)
-    else:
-        match message.topic:
-            case "N/d83add91edfc/battery/291/Soc":
-                buf = "%0.1f%%" % float(payload['value'])
-                cur_batt = buf.replace(".", ",")
-            case "N/d83add91edfc/battery/291/Dc/0/Power":
-                batt_pw = float(payload['value'])
-            case "N/d83add91edfc/grid/30/Ac/Power":
-                grid_pw = float(payload['value'])
-            case "N/d83add91edfc/pvinverter/20/Ac/Power":
-                solar_pw = float(payload['value'])
+        value = 0.0
+    match message.topic:
+        case "N/d83add91edfc/battery/291/Soc":
+            buf = "%0.1f%%" % value
+            cur_batt = buf.replace(".", ",")
+        case "N/d83add91edfc/battery/291/Dc/0/Power":
+            batt_pw = value
+        case "N/d83add91edfc/grid/30/Ac/Power":
+            grid_pw = value
+        case "N/d83add91edfc/pvinverter/20/Ac/Power":
+            solar_pw = value
 
 def on_subscribe(client, userdata, mid, qos, properties=None):
     print(f"{datetime.now()} Subscribed with QoS {qos}")
