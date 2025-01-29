@@ -21,6 +21,7 @@ from paho.mqtt.packettypes import PacketTypes
 
 GPIO.setmode(GPIO.BCM)
 GPIO.setup(9, GPIO.OUT)
+GPIO.output(9, GPIO.LOW)
 
 # Sensitive surfaces
 @dataclass
