@@ -1,21 +1,26 @@
-import platform
-import locale
-import signal
 import sys
 import json
-import pygame
-import pygame.gfxdraw
-import paho.mqtt.client as paho
 import board
-from adafruit_htu21d import HTU21D
-from paho.mqtt.properties import Properties
-from paho.mqtt.packettypes import PacketTypes 
+import pygame
+import signal
+import locale
+import platform
+import pygame.gfxdraw
+import RPi.GPIO as GPIO
+import subprocess as sp
+import paho.mqtt.client as paho
 from time import strftime, time_ns
+from const import FRANCE_TZ
 from datetime import datetime
 from rtetempo import APIWorker
-from const import FRANCE_TZ
 from dataclasses import dataclass
+from adafruit_htu21d import HTU21D
 from collections.abc import Callable
+from paho.mqtt.properties import Properties
+from paho.mqtt.packettypes import PacketTypes 
+
+GPIO.setmode(GPIO.BCM)
+GPIO.setup(9, GPIO.OUT)
 
 # Sensitive surfaces
 @dataclass
@@ -29,12 +34,13 @@ locale.setlocale(locale.LC_ALL, "fr_FR.UTF-8")
 
 # Global variables
 tgt_arch   = "aarch64"
-bt_addr    = "60:6D:C7:70:A6:34"
+bt_addr    = "41:42:50:E4:3C:4D"
 first_run  = True
 running    = True
 boiler     = False
 info       = False
 animate    = False
+bt_present = False
 solar_pw   = 0.0
 grid_pw    = 0.0
 batt_pw    = 0.0
@@ -55,9 +61,11 @@ i2c = board.I2C()  # uses board.SCL and board.SDA
 sensor = HTU21D(i2c)
 
 # pygame setup
+pygame.mixer.pre_init(buffer=8192)
 pygame.init()
 pygame.font.init()
-#pygame.mixer.init()
+pygame.mixer.init()
+pygame.mixer.stop()
 pygame.mouse.set_visible(False)
 if (platform.machine() == tgt_arch):
     screen = pygame.display.set_mode((0, 0), pygame.FULLSCREEN)
@@ -306,15 +314,27 @@ def buildMainUI():
     screen.blit(icon_solar,     (830, 138))
     screen.blit(icon_grid,      (830, 251))
     screen.blit(icon_battery,   (830, 361))
-    r = screen.blit(play_disabled , (225, 453))
+    if bt_present:
+        img = play_enabled
+    else:
+        img = play_disabled
+    r = screen.blit(img , (225, 453))
     if first_run:
-      tactile_zones.append(TactileZone(click, r, "play"))
-    r = screen.blit(next_disabled,  (322, 453))
+        tactile_zones.append(TactileZone(click, r, "play"))
+    if bt_present:
+        img = next_enabled
+    else:
+        img = next_disabled
+    r = screen.blit(img,  (322, 453))
     if first_run:
-      tactile_zones.append(TactileZone(click, r, "next"))
-    r = screen.blit(bt_disabled,    (427, 453))
+        tactile_zones.append(TactileZone(click, r, "next"))
+    if bt_present:
+        img = bt_enabled
+    else:
+        img = bt_disabled
+    r = screen.blit(img, (427, 453))
     if first_run:
-      tactile_zones.append(TactileZone(click, r, "bt"))
+        tactile_zones.append(TactileZone(click, r, "bt"))
 
     pygame.display.flip()
     first_run = False
@@ -347,9 +367,9 @@ def click(duration_ms, name):
         match name:
             case "boiler":
                 if boiler:
-                    boiler = False
+                    GPIO.output(9, GPIO.LOW)
                 else:
-                    boiler = True
+                    GPIO.output(9, GPIO.HIGH)
                     pygame.time.set_timer(BOILER_OFF, 20*60000, 1)
     else: # short press
         print("Short click on", name)
@@ -368,15 +388,18 @@ signal.signal(signal.SIGINT, signal_handler)
 while running:
     # limit to 60fps to prevent CPU overload
     clock.tick(60)
+    boiler = GPIO.input(9)
 
     # poll for events
     for event in pygame.event.get():
         # pygame.QUIT event means the user clicked X to close your window
         if event.type == pygame.QUIT:
             running = False
-        elif event.type in [pygame.MOUSEMOTION, pygame.VIDEOEXPOSE, pygame.ACTIVEEVENT, pygame.AUDIODEVICEADDED]:
+        elif event.type in [pygame.MOUSEMOTION, pygame.VIDEOEXPOSE, pygame.ACTIVEEVENT]:
             pass
         elif event.type in [pygame.FINGERDOWN, pygame.FINGERUP]:
+            pass
+        elif event.type in [pygame.AUDIODEVICEREMOVED, pygame.AUDIODEVICEADDED]:
             pass
         elif event.type == pygame.MOUSEBUTTONDOWN:
             mouse_press = time_ns()
@@ -392,6 +415,7 @@ while running:
         elif event.type == TEMPO_TICK:
             tempoUpdate()
         elif event.type == TEMP_TICK:
+            bt_present = bt_addr in sp.getoutput("hcitool con").split()
             buf = "%0.1f°" % sensor.temperature
             cur_temp = buf.replace(".", ",")
             cur_hum  = "%d%%" % int(sensor.relative_humidity)
@@ -406,7 +430,7 @@ while running:
             else:
                 anim_pct -= 1
         else:
-            print("Unknown %d", event.type)
+            print("Unknown event %d", event.type)
 
     buildMainUI()
 

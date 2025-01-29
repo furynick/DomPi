@@ -3,7 +3,7 @@ Description=Python Kiosk
 After=network.target
 
 [Service]
-Environment=XDG_RUNTIME_DIR=/home/kioskadm/.local/var
+Environment=XDG_RUNTIME_DIR=/run/user/1000
 Environment=SDL_AUDIODRIVER=pulseaudio
 Type=simple
 User=kioskadm
