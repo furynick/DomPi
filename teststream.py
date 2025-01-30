@@ -12,36 +12,26 @@ def pprint(web, level=0):
         else:
             print('\t'*level, k, ": ", v)
 
-def dump(obj, nested_level=0, output=sys.stdout):
-    spacing = '   '
-    if isinstance(obj, dict):
-        print >> output, '%s{' % ((nested_level) * spacing)
-        for k, v in obj.items():
-            if hasattr(v, '__iter__'):
-                print >> output, '%s%s:' % ((nested_level + 1) * spacing, k)
-                dump(v, nested_level + 1, output)
-            else:
-                print >> output, '%s%s: %s' % ((nested_level + 1) * spacing, k, v)
-        print >> output, '%s}' % (nested_level * spacing)
-    elif isinstance(obj, list):
-        print >> output, '%s[' % ((nested_level) * spacing)
-        for v in obj:
-            if hasattr(v, '__iter__'):
-                dump(v, nested_level + 1, output)
-            else:
-                print >> output, '%s%s' % ((nested_level + 1) * spacing, v)
-        print >> output, '%s]' % ((nested_level) * spacing)
-    else:
-        print >> output, '%s%s' % (nested_level * spacing, obj)
-
 yt_url   = 'https://www.youtube.com/watch?v=bXr-9tWhefo'
 ydl_opts = {"geturl": True, "quiet": True}
 
 with yt_dlp.YoutubeDL(ydl_opts) as ydl:
     info = ydl.extract_info(yt_url, download=False)
 print(info["title"])
+
+abr = 0.0
+for track in info["formats"]:
+    if track["resolution"] != "audio only" or track["abr"] == None:
+        continue
+    if float(track["abr"]) > abr:
+        abr = track["abr"]
+        audio_url = track["url"]
+print(audio_url)
+
 size = 8192
 for thumbnail in info["thumbnails"]:
+    if "height" not in thumbnail.keys():
+        continue
     if thumbnail["height"] != thumbnail["width"]:
         continue
     if thumbnail["height"] >= size:
@@ -50,7 +40,7 @@ for thumbnail in info["thumbnails"]:
     art_url = thumbnail["url"]
 print(art_url)
 
-p = vlc.MediaPlayer(info["requested_formats"][1]["url"])
+p = vlc.MediaPlayer(audio_url)
 p.play()
 input("press enter to quit")
 p.stop()

@@ -1,10 +1,13 @@
+import vlc
 import sys
 import json
 import board
 import pygame
 import signal
 import locale
+import yt_dlp
 import platform
+import threading
 import pygame.gfxdraw
 import RPi.GPIO as GPIO
 import subprocess as sp
@@ -31,10 +34,15 @@ class TactileZone:
     rect: pygame.Rect
     name: str
 
+tactile_zones = []
+tactile_zones.append(TactileZone(click, pygame.Rect(270,  35,  48,  70), "boiler"))
+
 # Set locale
 locale.setlocale(locale.LC_ALL, "fr_FR.UTF-8")
 
 # Global variables
+albumart   = pygame.Surface((160, 160), pygame.SRCALPHA)
+ydl_opts   = {"geturl": True, "quiet": True}
 tgt_arch   = "aarch64"
 bt_addr    = "41:42:50:E4:3C:4D"
 first_run  = True
@@ -337,6 +345,7 @@ def buildMainUI():
     r = screen.blit(img, (427, 453))
     if first_run:
         tactile_zones.append(TactileZone(click, r, "bt"))
+    screen.blit(albumart, (20, 400))
 
     pygame.display.flip()
     first_run = False
@@ -382,9 +391,15 @@ def click(duration_ms, name):
                     pygame.time.set_timer(INFO_OFF, 30000,  1)
                     pygame.time.set_timer(ANIMATE, anim_dly, 100)
 
-tactile_zones = []
-tactile_zones.append(TactileZone(click, pygame.Rect(270,  35,  48,  70), "boiler"))
+def getImage(url):
+    global albumart
 
+    r = requests.get(url)
+    img = io.BytesIO(r.content)
+    s = pygame.image.load(img, namehint="") # -> Surface
+    albumart = s
+
+#### MAIN ####
 signal.signal(signal.SIGINT, signal_handler)
 # Main loop
 while running:
