@@ -19,6 +19,7 @@ from collections.abc import Callable
 from paho.mqtt.properties import Properties
 from paho.mqtt.packettypes import PacketTypes 
 
+# GPIO setup
 GPIO.setmode(GPIO.BCM)
 GPIO.setup(9, GPIO.OUT)
 GPIO.output(9, GPIO.LOW)
@@ -421,7 +422,7 @@ while running:
             cur_temp = buf.replace(".", ",")
             cur_hum  = "%d%%" % int(sensor.relative_humidity)
         elif event.type == BOILER_OFF:
-            boiler = False
+            GPIO.output(9, GPIO.LOW)
         elif event.type == INFO_OFF:
             info = False
             pygame.time.set_timer(ANIMATE, anim_dly, 100)
