@@ -169,9 +169,7 @@ cython_debug/
 
 # PyPI configuration file
 .pypirc
-grey-flame-orig.png
-blue-flame-orig.png
-background.jpg
 
 # Visual Studio
 .vs
+.vscode
