@@ -1,0 +1,27 @@
+  743  sudo apt install python3-dev
+  755  sudo apt install vim
+  918  sudo apt install systemd-resolved
+  942  sudo apt install youtube-dl
+  946  sudo apt install youtube-dl
+  991  sudo apt install bluez-tools
+  998  sudo apt install pulseaudio-bluetooth
+ 1000  sudo apt install bluez-test-tools
+ 1001  sudo apt install pulseaudio-module-bluetooth
+ 1007  sudo apt install bluez-alsa-utils
+ 1018  sudo apt install pipewire
+ 1034  sudo apt install pipewire-alsa
+ 1043  sudo apt install  pipewire-audio
+ 1326  sudo apt install rpi-imager
+ 1389  sudo apt install libopengl0 -y
+ 1392  sudo apt install wtype
+ 1456  sudo apt install nodejs
+ 1473  sudo apt install mpv
+ 1477  sudo apt install vlc
+ 1485  sudo apt install mlocate
+ 1488  sudo apt install mplayer
+ 1619  sudo apt install snap
+ 1626  sudo apt install snapd
+ 1631  sudo apt install yt-dlp
+ 1646  sudo apt install ffmpeg
+ 1650  sudo apt install mplayer
+ 1652  sudo apt install vlc
