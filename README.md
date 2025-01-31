@@ -14,24 +14,23 @@ Domotic UI on Raspi Zero2W/Touchscreen
 ## Installation (WiP)
  - raspi-config
    - set wifi country
-   - enable I2C
    - set locale
- - wayfire
- - python
- - venv
- - clone
- - service
-  sudo systemctl disable getty@tty1
-  echo disable_splash=1 | sudo tee -a /boot/firmware/config.txt
-  sudo sed -i 's/+console//' /usr/lib/systemd/system/rc-local.service.d/debian.conf
-  sudo sed -i 's/$/ logo.nologo loglevel=1 vt.global_cursor_default=0 consoleblank=0 quiet/' /boot/firmware/cmdline.txt
-  sudo apt install seatd xdg-user-dirs libgl1-mesa-dri wayfire xwayland python3-dev pipewire-audio nodejs ffmpeg vlc
-  sudo setcap 'cap_net_raw,cap_net_admin+eip' $(readlink -f $(which python3.11))
-  git clone https://github.com/furynick/DomPi.git
-  cd DomPi
-  python3 -m venv .venv
-  source .venv/bin/activate
-  pip install wheel
-  pip install -r requirements.txt
-  sudo systemctl link $HOME/DomPi/kiosk.service
-  sudo systemctl enable kiosk
+```sh
+sudo apt -qq update && sudo apt -qqy upgrade
+sudo apt -qqy install git ffmpeg vlc nodejs
+sudo systemctl disable getty@tty1
+sudo raspi-config nonint do_i2c 1
+sudo raspi-config nonint do_boot_splash 1
+sudo sed -i 's/+console//' /usr/lib/systemd/system/rc-local.service.d/debian.conf
+sudo sed -i 's/$/ logo.nologo loglevel=1 vt.global_cursor_default=0 consoleblank=0 quiet/' /boot/firmware/cmdline.txt
+sudo apt install seatd xdg-user-dirs libgl1-mesa-dri wayfire xwayland python3-dev pipewire-audio
+sudo setcap 'cap_net_raw,cap_net_admin+eip' $(readlink -f $(which python3.11))
+git clone https://github.com/furynick/DomPi.git
+cd DomPi
+python3 -m venv .venv
+source .venv/bin/activate
+pip install wheel
+pip install -r requirements.txt
+sudo systemctl link $HOME/DomPi/kiosk.service
+sudo systemctl enable kiosk
+```
