@@ -17,20 +17,21 @@ Domotic UI on Raspi Zero2W/Touchscreen
    - set locale
 ```sh
 sudo apt -qq update && sudo apt -qqy upgrade
-sudo apt -qqy install git ffmpeg vlc nodejs
+sudo apt -qqy install git ffmpeg vlc nodejs bluez-alsa-utils \
+  libsdl2-2.0-0 libsdl2-mixer-2.0-0 libsdl2-ttf-2.0-0 libsdl2-image-2.0-0 libsdl2-gfx-1.0-0 libts0
 sudo systemctl disable getty@tty1
 sudo raspi-config nonint do_i2c 1
 sudo raspi-config nonint do_boot_splash 1
 sudo sed -i 's/+console//' /usr/lib/systemd/system/rc-local.service.d/debian.conf
-sudo sed -i 's/$/ logo.nologo loglevel=1 vt.global_cursor_default=0 consoleblank=0 quiet/' /boot/firmware/cmdline.txt
+sudo sed -i 's/=tty1/=tty5/;s/$/ logo.nologo loglevel=1 vt.global_cursor_default=0 consoleblank=0 quiet/' /boot/firmware/cmdline.txt
 sudo apt install seatd xdg-user-dirs libgl1-mesa-dri wayfire xwayland python3-dev pipewire-audio
 sudo setcap 'cap_net_raw,cap_net_admin+eip' $(readlink -f $(which python3.11))
+sudo usermod -aG tty kioskadm
 git clone https://github.com/furynick/DomPi.git
 cd DomPi
 python3 -m venv .venv
 source .venv/bin/activate
-pip install wheel
 pip install -r requirements.txt
-sudo systemctl link $HOME/DomPi/kiosk.service
+sudo systemctl link $HOME/DomPi/install/kiosk.service
 sudo systemctl enable kiosk
 ```

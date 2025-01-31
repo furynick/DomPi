@@ -34,9 +34,6 @@ class TactileZone:
     rect: pygame.Rect
     name: str
 
-tactile_zones = []
-tactile_zones.append(TactileZone(click, pygame.Rect(270,  35,  48,  70), "boiler"))
-
 # Set locale
 locale.setlocale(locale.LC_ALL, "fr_FR.UTF-8")
 
@@ -64,7 +61,8 @@ cur_temp   = '19.0°'
 cur_hum    = '45%'
 gauge_h    = 80
 anim_pct   = 0
-anim_dly   = 7
+anim_dly   = 5
+audio_cnt  = 0
 
 # Temperature sensor setup
 i2c = board.I2C()  # uses board.SCL and board.SDA
@@ -74,8 +72,6 @@ sensor = HTU21D(i2c)
 pygame.mixer.pre_init(buffer=8192)
 pygame.init()
 pygame.font.init()
-pygame.mixer.init()
-pygame.mixer.stop()
 pygame.mouse.set_visible(False)
 if (platform.machine() == tgt_arch):
     screen = pygame.display.set_mode((0, 0), pygame.FULLSCREEN)
@@ -399,12 +395,17 @@ def getImage(url):
     s = pygame.image.load(img, namehint="") # -> Surface
     albumart = s
 
+tactile_zones = []
+tactile_zones.append(TactileZone(click, pygame.Rect(270,  35,  48,  70), "boiler"))
+
 #### MAIN ####
+pygame.mixer.music.load("/mnt/home/kioskadm/taskCompleted.mp3")
+pygame.mixer.music.play()
 signal.signal(signal.SIGINT, signal_handler)
 # Main loop
 while running:
-    # limit to 60fps to prevent CPU overload
-    clock.tick(60)
+    # limit to 50fps to prevent CPU overload
+    clock.tick(50)
     boiler = GPIO.input(9)
 
     # poll for events
@@ -412,18 +413,26 @@ while running:
         # pygame.QUIT event means the user clicked X to close your window
         if event.type == pygame.QUIT:
             running = False
-        elif event.type in [pygame.MOUSEMOTION, pygame.VIDEOEXPOSE, pygame.ACTIVEEVENT]:
+        elif event.type in [pygame.MOUSEBUTTONDOWN, pygame.MOUSEBUTTONUP, pygame.MOUSEMOTION, pygame.VIDEOEXPOSE, pygame.ACTIVEEVENT]:
             pass
-        elif event.type in [pygame.FINGERDOWN, pygame.FINGERUP]:
+        elif event.type == pygame.FINGERMOTION:
             pass
-        elif event.type in [pygame.AUDIODEVICEREMOVED, pygame.AUDIODEVICEADDED]:
-            pass
-        elif event.type == pygame.MOUSEBUTTONDOWN:
+        elif event.type == pygame.AUDIODEVICEADDED:
+            audio_cnt += 1
+            if audio_cnt > 1:
+                pygamer.mixer.quit()
+            pygame.mixer.init()
+        elif event.type == pygame.AUDIODEVICEREMOVED:
+            audio_cnt -= 1
+            pygamer.mixer.quit()
+            if audio_cnt > 1:
+              pygame.mixer.init()
+        elif event.type == pygame.FINGERDOWN:
             mouse_press = time_ns()
-        elif event.type == pygame.MOUSEBUTTONUP:
+        elif event.type == pygame.FINGERUP:
             mouse_press = time_ns() - mouse_press
             for zone in tactile_zones:
-                if zone.rect.collidepoint(pygame.mouse.get_pos()):
+                if zone.rect.collidepoint((int(event.x * screen.get_width()), int(event.y * screen.get_height()))):
                     zone._cb(int(mouse_press/1000000), zone.name)
         elif event.type in [pygame.WINDOWLEAVE, pygame.WINDOWENTER, pygame.WINDOWCLOSE, pygame.WINDOWEXPOSED, pygame.WINDOWSIZECHANGED, pygame.WINDOWSHOWN, pygame.WINDOWHIDDEN, pygame.WINDOWFOCUSGAINED]:
             pass
