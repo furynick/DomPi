@@ -399,8 +399,6 @@ tactile_zones = []
 tactile_zones.append(TactileZone(click, pygame.Rect(270,  35,  48,  70), "boiler"))
 
 #### MAIN ####
-pygame.mixer.music.load("/mnt/home/kioskadm/taskCompleted.mp3")
-pygame.mixer.music.play()
 signal.signal(signal.SIGINT, signal_handler)
 # Main loop
 while running:
