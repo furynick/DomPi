@@ -9,3 +9,5 @@ ytmusicapi==1.9.1
 yt-dlp==2025.1.26
 PyAudio==0.2.14
 aioprocessing==2.0.1
+RPi.GPIO==0.7.1
+asyncio-paho==0.6.0
