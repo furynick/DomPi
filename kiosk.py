@@ -405,7 +405,6 @@ def buildMainUI():
     global tactile_zones
     global current_track_info
 
-    boiler = boiler_relay()
     cur_time = strftime('%H:%M')
     cur_date = strftime('%A ') + strftime('%d').lstrip('0') + strftime(' %B %Y')
 
@@ -467,7 +466,7 @@ def buildMainUI():
     screen.blit(hum_srf,  hum_crd)
     screen.blit(batt_srf, batt_crd)
     screen.blit(text_srf, text_crd)
-    if boiler:
+    if boiler_relay():
         screen.blit(blue_flame, (275, 50))
     else:
         screen.blit(grey_flame, (275, 50))
@@ -507,14 +506,13 @@ def buildMainUI():
     main_first_run = False
 
 def build_ui():
-    while not stop_event.is_set():
-        if ui_page == "main":
-            buildMainUI()
-        elif ui_page == "schedule":
-            buildSchedUI()
-        pygame.display.flip()
-        # limit to 50fps to prevent CPU overload
-        clock.tick(50)
+    if ui_page == "main":
+        buildMainUI()
+    elif ui_page == "schedule":
+        buildSchedUI()
+    pygame.display.flip()
+    # limit to 50fps to prevent CPU overload
+    clock.tick(50)
 
 def tempoUpdate():
     global tempo_now
@@ -533,7 +531,6 @@ def signal_handler(sig, frame):
     stop_event.set()
 
 def click_main(duration_ms, name):
-    global boiler
     global info
 
     if duration_ms > 1000: # very long press
@@ -542,7 +539,7 @@ def click_main(duration_ms, name):
         print("Long click on", name)
         match name:
             case "boiler":
-                if boiler:
+                if boiler_relay():
                     boiler_relay('OFF')
                 else:
                     boiler_relay('ON')
@@ -561,54 +558,63 @@ def click_main(duration_ms, name):
                     pygame.time.set_timer(ANIMATE, anim_dly, 100)
 
 def manage_events():
+    global tactile_zones
+    global mouse_press
     global bt_present
+    global properties
+    global anim_pct
+    global anim_dly
     global cur_temp
     global cur_hum
+    global ui_page
+    global bt_addr
+    global client
     global sensor
+    global screen
+    global info
 
-    while not stop_event.is_set():
-        # poll for events
-        for event in pygame.event.get():
-            # pygame.QUIT event means the user clicked X to close your window
-            if event.type == pygame.QUIT:
-                stop_event.set()
-            elif event.type in [pygame.MOUSEBUTTONDOWN, pygame.MOUSEBUTTONUP, pygame.MOUSEMOTION, pygame.VIDEOEXPOSE, pygame.ACTIVEEVENT]:
-                pass
-            elif event.type == pygame.FINGERMOTION:
-                pass
-            elif event.type in [pygame.AUDIODEVICEADDED, pygame.AUDIODEVICEREMOVED]:
-                pass
-            elif event.type == pygame.FINGERDOWN:
-                mouse_press = time_ns()
-            elif event.type == pygame.FINGERUP:
-                mouse_press = time_ns() - mouse_press
-                for zone in tactile_zones:
-                    if zone.rect.collidepoint((int(event.x * screen.get_width()), int(event.y * screen.get_height()))) and zone.page == ui_page:
-                        zone._cb(int(mouse_press/1000000), zone.name)
-            elif event.type in [pygame.WINDOWLEAVE, pygame.WINDOWENTER, pygame.WINDOWCLOSE, pygame.WINDOWEXPOSED, pygame.WINDOWSIZECHANGED, pygame.WINDOWSHOWN, pygame.WINDOWHIDDEN, pygame.WINDOWFOCUSGAINED]:
-                pass
-            elif event.type == MQTT_TICK:
-                client.publish('R/d83add91edfc/keepalive','{ "keepalive-options" : ["suppress-republish"] }', 2, properties=properties)
-            elif event.type == TEMPO_TICK:
-                tempoUpdate()
-            elif event.type == TEMP_TICK:
-                bt_present = bt_addr in sp.getoutput("hcitool con").split()
-                if sensor:
-                    buf = "%0.1f°" % sensor.temperature
-                    cur_temp = buf.replace(".", ",")
-                    cur_hum  = "%d%%" % int(sensor.relative_humidity)
-            elif event.type == BOILER_OFF:
-                boiler_relay('OFF')
-            elif event.type == INFO_OFF:
-                info = False
-                pygame.time.set_timer(ANIMATE, anim_dly, 100)
-            elif event.type == ANIMATE:
-                if info:
-                    anim_pct += 1
-                else:
-                    anim_pct -= 1
+    # poll for events
+    for event in pygame.event.get():
+        # pygame.QUIT event means the user clicked X to close your window
+        if event.type == pygame.QUIT:
+            stop_event.set()
+        elif event.type in [pygame.MOUSEBUTTONDOWN, pygame.MOUSEBUTTONUP, pygame.MOUSEMOTION, pygame.VIDEOEXPOSE, pygame.ACTIVEEVENT]:
+            pass
+        elif event.type == pygame.FINGERMOTION:
+            pass
+        elif event.type in [pygame.AUDIODEVICEADDED, pygame.AUDIODEVICEREMOVED]:
+            pass
+        elif event.type == pygame.FINGERDOWN:
+            mouse_press = time_ns()
+        elif event.type == pygame.FINGERUP:
+            mouse_press = time_ns() - mouse_press
+            for zone in tactile_zones:
+                if zone.rect.collidepoint((int(event.x * screen.get_width()), int(event.y * screen.get_height()))) and zone.page == ui_page:
+                    zone._cb(int(mouse_press/1000000), zone.name)
+        elif event.type in [pygame.WINDOWLEAVE, pygame.WINDOWENTER, pygame.WINDOWCLOSE, pygame.WINDOWEXPOSED, pygame.WINDOWSIZECHANGED, pygame.WINDOWSHOWN, pygame.WINDOWHIDDEN, pygame.WINDOWFOCUSGAINED]:
+            pass
+        elif event.type == MQTT_TICK:
+            client.publish('R/d83add91edfc/keepalive','{ "keepalive-options" : ["suppress-republish"] }', 2, properties=properties)
+        elif event.type == TEMPO_TICK:
+            tempoUpdate()
+        elif event.type == TEMP_TICK:
+            bt_present = bt_addr in sp.getoutput("hcitool con").split()
+            if sensor:
+                buf = "%0.1f°" % sensor.temperature
+                cur_temp = buf.replace(".", ",")
+                cur_hum  = "%d%%" % int(sensor.relative_humidity)
+        elif event.type == BOILER_OFF:
+            boiler_relay('OFF')
+        elif event.type == INFO_OFF:
+            info = False
+            pygame.time.set_timer(ANIMATE, anim_dly, 100)
+        elif event.type == ANIMATE:
+            if info:
+                anim_pct += 1
             else:
-                print("Unknown event %d", event.type)
+                anim_pct -= 1
+        else:
+            print("Unknown event %d", event.type)
 
 # ✅ YTMusic initialisation with OAuth
 ytmusic = YTMusic('.priv/oauth.json')
@@ -620,9 +626,9 @@ q_play = queue.Queue()                   # Infos avec URL audio
 q_data = queue.Queue(maxsize=BUFFER_MAX_SIZE)  # Buffer audio dynamique
 
 # Sync events
-stop_event = threading.Event()           # Pour arrêter les threads proprement
-next_event = threading.Event()           # Pour passer à la piste suivante
-buffer_ready_event = threading.Event()   # Pour démarrer la lecture audio lorsque le tampon est prêt
+stop_event = threading.Event()           # Clean threads shutdown
+next_event = threading.Event()           # Going to next track
+buffer_ready_event = threading.Event()   # Start play when buffer ready
 
 # GPIO setup
 boiler_relay('Init')
@@ -722,32 +728,30 @@ tactile_zones.append(TactileZone(click_main, pygame.Rect(270,  35,  48,  70), "b
 
 signal.signal(signal.SIGINT, signal_handler)
 
-# ✅ Lancement des threads
-thread_playlist = threading.Thread(target=manage_playlist)
-thread_track = threading.Thread(target=manage_track)
-thread_audio = threading.Thread(target=manage_audio)
-thread_play = threading.Thread(target=play_audio)
-thread_gui = threading.Thread(target=build_ui)
-thread_evts = threading.Thread(target=manage_events)
+# Start threads
+threads = []
+#threads.append(threading.Thread(target=manage_playlist))
+#threads.append(threading.Thread(target=manage_track))
+#threads.append(threading.Thread(target=manage_audio))
+#threads.append(threading.Thread(target=play_audio))
+threads.append(threading.Thread(target=build_ui))
+threads.append(threading.Thread(target=manage_events))
 
-thread_playlist.start()
-thread_track.start()
-thread_audio.start()
-thread_play.start()
-thread_gui.start()
-thread_evts.start()
+for thread in threads:
+  thread.start()
 
 # ✅ Exemple d'ajout d'une playlist à traiter
-q_playlist.put('PLdXUFj15Ms0UsN4vUcqEIlm3VsGb_Re1b')  # Remplacer par un ID réel
+#q_playlist.put('PLdXUFj15Ms0UsN4vUcqEIlm3VsGb_Re1b')  # Remplacer par un ID réel
 
-# ✅ Arrêt des threads à la fermeture de l'application
-thread_evts.join()
+# Flip pygame display on signal
+while not stop_event.is_set():
+    build_ui()
+    manage_events()
+
+# Shutdown threads
 buffer_ready_event.set()
-thread_gui.join()
-thread_play.join()
-thread_audio.join()
-thread_track.join()
-thread_playlist.join()
+while threads:
+  threads.pop().join()
 
 api_worker.signalstop("Kiosk shutdown")
 client.loop_stop()
