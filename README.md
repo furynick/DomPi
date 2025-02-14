@@ -19,7 +19,7 @@ Domotic UI on Raspi Zero2W/Touchscreen
 sudo apt -qq update && sudo apt -qqy upgrade
 sudo apt -qqy install git ffmpeg vlc nodejs bluez-alsa-utils \
   libsdl2-2.0-0 libsdl2-mixer-2.0-0 libsdl2-ttf-2.0-0 libsdl2-image-2.0-0 libsdl2-gfx-1.0-0 \
-  libts0 libportaudio2
+  libts0 libportaudio2 pulseaudio-module-bluetooth
 sudo systemctl disable getty@tty1
 sudo raspi-config nonint do_i2c 1
 sudo raspi-config nonint do_boot_splash 1
