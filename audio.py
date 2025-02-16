@@ -27,7 +27,7 @@ current_track_info = {
 # ✅ YTMusic initialisation with OAuth
 ytmusic = YTMusic('.priv/oauth.json')
 
-# ✅ Files tampons
+# ✅ Buffer queues
 q_playlist = queue.Queue()                         # IDs des playlists
 q_track    = queue.Queue()                         # Infos des chansons (avec métadonnées)
 q_play     = queue.Queue()                         # Infos avec URL audio
@@ -38,7 +38,10 @@ stop_event         = threading.Event()   # Clean threads shutdown
 next_event         = threading.Event()   # Going to next track
 buffer_ready_event = threading.Event()   # Start play when buffer ready
 
-# ✅ Fonction : Get best thumbnail
+# Global varaibles
+bt_present       = False
+
+# ✅ Function : Get best thumbnail
 def get_best_thumbnail(thumbnails):
     square_thumbnails = [
         t for t in thumbnails if t.get('width') == t.get('height') and t['width'] <= 160
@@ -52,7 +55,7 @@ def get_best_thumbnail(thumbnails):
     )
     return closest_thumbnail['url']
 
-# ✅ Download & resize thumbnail
+# ✅ Function : Download & resize thumbnail
 def load_thumbnail(url):
     try:
         response = requests.get(url)

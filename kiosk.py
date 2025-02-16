@@ -47,7 +47,6 @@ main_first_run   = True
 sched_first_run  = True
 info             = False
 animate          = False
-bt_present       = False
 solar_pw         = 0.0
 grid_pw          = 0.0
 batt_pw          = 0.0
@@ -249,7 +248,7 @@ def buildMainUI():
     screen.blit(icon_solar,     (830, 138))
     screen.blit(icon_grid,      (830, 251))
     screen.blit(icon_battery,   (830, 361))
-    if bt_present:
+    if audio.bt_present:
         if audio.current_track_info.get('playing'):
             img = pause
         else:
@@ -259,14 +258,14 @@ def buildMainUI():
     r = screen.blit(img , (255, 453))
     if main_first_run:
         tactile_zones.append(TactileZone(click_main, r, "play", "main"))
-    if bt_present:
+    if audio.bt_present:
         img = next_enabled
     else:
         img = next_disabled
     r = screen.blit(img,  (352, 453))
     if main_first_run:
         tactile_zones.append(TactileZone(click_main, r, "next", "main"))
-    if bt_present:
+    if audio.bt_present:
         img = bt_enabled
     else:
         img = bt_disabled
@@ -336,7 +335,6 @@ def click_main(duration_ms, name):
 def manage_events():
     global tactile_zones
     global mouse_press
-    global bt_present
     global properties
     global anim_pct
     global anim_dly
@@ -374,7 +372,6 @@ def manage_events():
         elif event.type == TEMPO_TICK:
             tempoUpdate()
         elif event.type == TEMP_TICK:
-            bt_present = bt_addr in sp.getoutput("hcitool con").split()
             if sensor:
                 buf = "%0.1f°" % sensor.temperature
                 cur_temp = buf.replace(".", ",")
