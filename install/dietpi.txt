@@ -136,7 +136,7 @@ AUTO_SETUP_GLOBAL_PASSWORD=dietpi
 # - Add as many software IDs as you wish, separated by space.
 # - DietPi will automatically install all dependencies, like ALSA/X11 for desktops etc.
 # - E.g. the following (without the leading "#") will install the LXDE desktop, the TigerVNC server and the Kodi media centre automatically on first boot:
-AUTO_SETUP_INSTALL_SOFTWARE_ID=5 7 9 17 69 72
+AUTO_SETUP_INSTALL_SOFTWARE_ID=5 7 9 17 69 72 130
 
 #------------------------------------------------------------------------------------------------------
 ##### Misc DietPi program settings #####
