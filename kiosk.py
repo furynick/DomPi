@@ -490,24 +490,12 @@ tactile_zones.append(TactileZone(click_main, pygame.Rect(270,  35,  48,  70), "b
 
 signal.signal(signal.SIGINT, signal_handler)
 
-# Start threads
-threads = []
-threads.append(threading.Thread(target=build_ui))
-threads.append(threading.Thread(target=manage_events))
-
-for thread in threads:
-  thread.start()
 audio.start_threads()
 
 # Flip pygame display on signal
 while not stop_event.is_set():
     build_ui()
     manage_events()
-
-# Shutdown threads
-buffer_ready_event.set()
-while threads:
-  threads.pop().join()
 
 audio.stop-threads()
 api_worker.signalstop("Kiosk shutdown")
