@@ -45,7 +45,7 @@ AUTO_SETUP_NET_HOSTNAME=theo
 AUTO_SETUP_NET_ETH_FORCE_SPEED=0
 
 # Delay service starts at boot until network is established: 0=disabled | 1=enabled
-AUTO_SETUP_BOOT_WAIT_FOR_NETWORK=0
+AUTO_SETUP_BOOT_WAIT_FOR_NETWORK=1
 
 ##### Misc options #####
 # Swap space size to generate: 0 => disable | 1 => auto | 2 and up => size in MiB
@@ -63,7 +63,7 @@ AUTO_UNMASK_LOGIND=0
 # - Add as many APT package names as you wish, separated by space.
 # - They will be installed after dietpi-software options and before the script defined via AUTO_SETUP_CUSTOM_SCRIPT_EXEC (see below) is executed.
 # - E.g. the following (without the leading "#") will install the APT packages iotop, iptables and xz-utils:
-AUTO_SETUP_APT_INSTALLS=bluez-alsa-utils libsdl2-2.0-0 libsdl2-ttf-2.0-0 libsdl2-image-2.0-0 libsdl2-gfx-1.0-0 libts0 libportaudio2 pulseaudio-module-bluetooth
+AUTO_SETUP_APT_INSTALLS=
 
 # Custom Script (pre-networking and pre-DietPi install)
 # - Allows you to automatically execute a custom script before network is up on first boot.
@@ -136,7 +136,7 @@ AUTO_SETUP_GLOBAL_PASSWORD=dietpi
 # - Add as many software IDs as you wish, separated by space.
 # - DietPi will automatically install all dependencies, like ALSA/X11 for desktops etc.
 # - E.g. the following (without the leading "#") will install the LXDE desktop, the TigerVNC server and the Kodi media centre automatically on first boot:
-AUTO_SETUP_INSTALL_SOFTWARE_ID=5 7 9 17 69 72 130
+AUTO_SETUP_INSTALL_SOFTWARE_ID=0 5 7 9 17 69 72 130
 
 #------------------------------------------------------------------------------------------------------
 ##### Misc DietPi program settings #####
