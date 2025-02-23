@@ -16,7 +16,7 @@ install -o ${KIOSK_USER} -g ${KIOSK_USER} -m 0644 $BASE/id_ed25519.pub ~${KIOSK_
 usermod -aG audio,tty,gpio,i2c,video ${KIOSK_USER}
 setcap 'cap_net_raw,cap_net_admin+eip' $(readlink -f $(which python3))
 apt -y install libts0 libportaudio2 python3-venv
-su - ${KIOSK_USER} -c 'DomPi/install/setup.sh'
+su - ${KIOSK_USER} -c 'curl -s https://raw.githubusercontent.com/furynick/DomPi/refs/heads/main/install/setup.sh | bash'
 cp ${KIOSK_USER}/DomPi/install/pointercal /etc
 
 # Clean

@@ -1,7 +1,8 @@
-#!/bin/bash -e
+#!/bin/bash
+set -e
+
 cd $HOME
 DEV_PKGS="build-essential libdrm-dev libgbm-dev libudev-dev libfreetype6-dev"
-DEV_PKGS+=" libsdl2-dev libsdl2-image-dev libsdl2-mixer-dev libsdl2-ttf-dev"
 DEV_PKGS+=" libts-dev python3-dev portaudio19-dev"
 sudo apt -qq -y install $DEV_PKGS
 (
