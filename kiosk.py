@@ -21,7 +21,9 @@ from adafruit_htu21d import HTU21D
 from collections.abc import Callable
 
 rpi = platform.machine() == "aarch64"
-if rpi: import RPi.GPIO as GPIO
+if rpi:
+    from gpiozero import DigitalOutputDevice
+    relay = DigitalOutputDevice(9)
 
 # Sensitive surfaces
 @dataclass
@@ -39,11 +41,11 @@ except:
 
 # Global variables
 ydl_opts         = {"geturl": True, "quiet": True}
-bt_addr          = "41:42:50:E4:3C:4D"
 main_first_run   = True
 sched_first_run  = True
 info             = False
 animate          = False
+boiler           = False
 batt_max         = 5000.0
 grid_max         = 6800.0
 sol_max          = 2920.0
@@ -57,17 +59,19 @@ anim_pct         = 0
 anim_dly         = 5
 
 def boiler_relay(cmd = "Query"):
+    global boiler
+
     if not rpi:
         return False
     if cmd == 'Init':
-        GPIO.setmode(GPIO.BCM)
-        GPIO.setup(9, GPIO.OUT)
-        GPIO.output(9, GPIO.LOW)
+        relay.off()
     if cmd == 'OFF':
-        GPIO.output(9, GPIO.LOW)
+        relay.off()
+        boiler = False
     if cmd == 'ON':
-        GPIO.output(9, GPIO.HIGH)
-    return GPIO.input(9)
+        relay.on()
+        boiler = True
+    return boiler
 
 def tempoDraw(state, c, r):
     col = tempo_u_col
