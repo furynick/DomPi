@@ -1,4 +1,4 @@
-import json
+import mqtt
 import time
 import board
 import audio
@@ -9,7 +9,6 @@ import locale
 import platform
 import threading
 import pygame.gfxdraw
-import paho.mqtt.client as paho
 from io import BytesIO
 from PIL import Image
 from time import strftime, time_ns
@@ -20,8 +19,6 @@ from ytmusicapi import YTMusic
 from dataclasses import dataclass
 from adafruit_htu21d import HTU21D
 from collections.abc import Callable
-from paho.mqtt.properties import Properties
-from paho.mqtt.packettypes import PacketTypes 
 
 rpi = platform.machine() == "aarch64"
 if rpi: import RPi.GPIO as GPIO
@@ -47,15 +44,11 @@ main_first_run   = True
 sched_first_run  = True
 info             = False
 animate          = False
-solar_pw         = 0.0
-grid_pw          = 0.0
-batt_pw          = 0.0
 batt_max         = 5000.0
 grid_max         = 6800.0
 sol_max          = 2920.0
 tempo_now        = 'UNKN'
 tempo_tmw        = 'UNKN'
-cur_batt         = '0,0%'
 cur_temp         = '19.0°'
 cur_hum          = '45%'
 ui_page          = 'main'
@@ -75,51 +68,6 @@ def boiler_relay(cmd = "Query"):
     if cmd == 'ON':
         GPIO.output(9, GPIO.HIGH)
     return GPIO.input(9)
-
-def on_log(client, userdata, level, buf):
-    print("log: ",buf)
-
-def on_connect(client, userdata, flags, reason_code, properties=None):
-    client.subscribe(topic="N/d83add91edfc/battery/291/Soc")
-    client.subscribe(topic="N/d83add91edfc/grid/30/Ac/Power")
-    client.subscribe(topic="N/d83add91edfc/battery/291/Dc/0/Power")
-    client.subscribe(topic="N/d83add91edfc/pvinverter/20/Ac/Power")
-    client.publish('R/d83add91edfc/keepalive','{ "keepalive-options" : ["suppress-republish"] }', 2, properties=properties)
-
-def on_connect_fail(client, userdata):
-    print('CONNFAIL received with data %s.' % (userdata))
-
-def on_message(client, userdata, message, properties=None):
-    global cur_batt
-    global solar_pw
-    global grid_pw
-    global batt_pw
-
-    try:
-        payload = json.loads(message.payload)
-        value = float(payload['value'])
-    except json.decoder.JSONDecodeError as e:
-        print("Error decoding JSON", message)
-        value = 0.0
-    except ValueError as e:
-        print("Error decoding", message)
-        value = 0.0
-    except TypeError as e:
-        print("Invalid type", message)
-        value = 0.0
-    match message.topic:
-        case "N/d83add91edfc/battery/291/Soc":
-            buf = "%0.1f%%" % value
-            cur_batt = buf.replace(".", ",")
-        case "N/d83add91edfc/battery/291/Dc/0/Power":
-            batt_pw = value
-        case "N/d83add91edfc/grid/30/Ac/Power":
-            grid_pw = value
-        case "N/d83add91edfc/pvinverter/20/Ac/Power":
-            solar_pw = value
-
-def on_subscribe(client, userdata, mid, qos, properties=None):
-    print(f"{datetime.now()} Subscribed with QoS {qos}")
 
 def tempoDraw(state, c, r):
     col = tempo_u_col
@@ -169,11 +117,7 @@ def buildSchedUI():
 def buildMainUI():
     global info
     global cur_hum
-    global grid_pw
-    global batt_pw
-    global solar_pw
     global anim_pct
-    global cur_batt
     global cur_temp
     global tempo_now
     global tempo_tmw
@@ -192,19 +136,19 @@ def buildMainUI():
     if main_first_run:
         tactile_zones.append(TactileZone(click_main, r, "info", "main"))
     if anim_pct != 100:
-        gaugeDraw(216, int(100.0 * solar_pw / sol_max), solar_col)
-        if grid_pw > 0.0:
-            gaugeDraw(327, int( 100.0 * grid_pw / grid_max), grid_fw_col)
+        gaugeDraw(216, int(100.0 * mqtt.solar_pw / sol_max), solar_col)
+        if mqtt.grid_pw > 0.0:
+            gaugeDraw(327, int( 100.0 * mqtt.grid_pw / grid_max), grid_fw_col)
         else:
-            gaugeDraw(327, int(-100.0 * grid_pw / grid_max), grid_bw_col, True)
-        if batt_pw > 0.0:
-            gaugeDraw(438, int( 100.0 * batt_pw / batt_max), bat_chg_col)
+            gaugeDraw(327, int(-100.0 * mqtt.grid_pw / grid_max), grid_bw_col, True)
+        if mqtt.batt_pw > 0.0:
+            gaugeDraw(438, int( 100.0 * mqtt.batt_pw / batt_max), bat_chg_col)
         else:
-            gaugeDraw(438, int(-100.0 * batt_pw / batt_max), bat_dch_col, True)
+            gaugeDraw(438, int(-100.0 * mqtt.batt_pw / batt_max), bat_dch_col, True)
     else:
         pass
         y = 180
-        for watt in [ solar_pw, grid_pw, batt_pw ]:
+        for watt in [ mqtt.solar_pw, mqtt.grid_pw, mqtt.batt_pw ]:
             text_srf = font_batt.render("%dW" % watt, True, fground_col, None)
             text_crd = text_srf.get_rect()
             text_crd.midright = (805, y)
@@ -227,7 +171,7 @@ def buildMainUI():
     hum_crd  = hum_srf.get_rect()
     hum_crd.center =  (390,  80)
 
-    batt_srf = font_batt.render(cur_batt, True, fground_col, None)
+    batt_srf = font_batt.render(mqtt.cur_batt, True, fground_col, None)
     batt_crd = batt_srf.get_rect()
     batt_crd.center = (830,  485)
 
@@ -335,7 +279,6 @@ def click_main(duration_ms, name):
 def manage_events():
     global tactile_zones
     global mouse_press
-    global properties
     global anim_pct
     global anim_dly
     global cur_temp
@@ -349,6 +292,7 @@ def manage_events():
 
     # poll for events
     for event in pygame.event.get():
+        print("Event received: %d", event.type)
         # pygame.QUIT event means the user clicked X to close your window
         if event.type == pygame.QUIT:
             stop_event.set()
@@ -368,7 +312,7 @@ def manage_events():
         elif event.type in [pygame.WINDOWLEAVE, pygame.WINDOWENTER, pygame.WINDOWCLOSE, pygame.WINDOWEXPOSED, pygame.WINDOWSIZECHANGED, pygame.WINDOWSHOWN, pygame.WINDOWHIDDEN, pygame.WINDOWFOCUSGAINED]:
             pass
         elif event.type == MQTT_TICK:
-            client.publish('R/d83add91edfc/keepalive','{ "keepalive-options" : ["suppress-republish"] }', 2, properties=properties)
+            mqtt.keepalive()
         elif event.type == TEMPO_TICK:
             tempoUpdate()
         elif event.type == TEMP_TICK:
@@ -467,23 +411,7 @@ api_worker = APIWorker(
 )
 api_worker.start()
 
-# MQTT client setup
-properties=Properties(PacketTypes.PUBLISH)
-properties.MessageExpiryInterval=5 # in seconds
-client = paho.Client(paho.CallbackAPIVersion.VERSION2, "Kiosk")
-#client.on_log = on_log
-client.on_connect = on_connect
-client.on_connect_fail = on_connect_fail
-client.on_message = on_message
-client.on_subscribe = on_subscribe
-try:
-    client.connect('192.168.0.141', 1883)
-except ConnectionRefusedError:
-    print("Unable to connect")
-except:
-    print("Unknown MQTT connect error")
-#else:
-#    client.loop_start()
+mqtt.setup('192.168.0.141', 1883)
 
 tactile_zones = []
 tactile_zones.append(TactileZone(click_main, pygame.Rect(270,  35,  48,  70), "boiler", "main"))
@@ -499,6 +427,5 @@ while not stop_event.is_set():
 
 audio.stop-threads()
 api_worker.signalstop("Kiosk shutdown")
-client.loop_stop()
-client.disconnect()
+mqtt.shutdown()
 pygame.quit()
