@@ -15,10 +15,7 @@ screen.fill((255, 255, 255))
 # Mettre à jour l'affichage
 pygame.display.flip()
 
-# Attendre qu'une touche soit pressée
-print("Appuyez sur une touche pour quitter...")
-while True:
-    for event in pygame.event.get():
-        if event.type == pygame.KEYDOWN:
-            pygame.quit()
-            sys.exit()
+pygame.time.wait(5000)
+
+pygame.quit()
+sys.exit()
