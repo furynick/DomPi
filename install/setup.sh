@@ -6,9 +6,10 @@ DEV_PKGS+=" libts-dev python3-dev portaudio19-dev"
 sudo apt -qq -y install $DEV_PKGS
 (
   git clone https://github.com/libsdl-org/SDL.git
-  cd SDL
-  mkdir build
-  cd build
+  V=$(git tag | sort | awk '/release-2/ {V=$0} END {print V}')
+  git checkout $V
+  mkdir SDL/build
+  cd SDL/build
   ../configure --enable-video-kmsdrm --enable-video-fbcon --enable-video-directfb \
              --enable-tff --enable-gfx --enable-image --enable-touchscreen
   make -j4
