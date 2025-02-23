@@ -1,7 +1,7 @@
 #!/bin/bash
 cd "$(dirname $(readlink -f $0))"
-read -p "WiFi SSID: " SSID
-read -p "WiFi Pass: " PASS
+[ -z "$SSID" ] && read -p "WiFi SSID: " SSID
+[ -z "$PASS" ] && read -p "WiFi Pass: " PASS
 T=$'\t'
 curl https://dietpi.com/downloads/images/DietPi_RPi234-ARMv8-Bookworm.img.xz | unxz | sudo dd of=/dev/sda bs=4M status=none
 sudo mount /dev/sda1 /mnt

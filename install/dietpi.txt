@@ -83,7 +83,7 @@ AUTO_SETUP_BACKUP_RESTORE=0
 
 ##### Software options #####
 # SSH server choice: 0=none/custom | -1=Dropbear | -2=OpenSSH
-AUTO_SETUP_SSH_SERVER_INDEX=-1
+AUTO_SETUP_SSH_SERVER_INDEX=-2
 
 # SSH server pubkey
 # - Public key(s) for "root" and "dietpi" users, which will be added to ~/.ssh/authorized_keys
@@ -136,7 +136,14 @@ AUTO_SETUP_GLOBAL_PASSWORD=dietpi
 # - Add as many software IDs as you wish, separated by space.
 # - DietPi will automatically install all dependencies, like ALSA/X11 for desktops etc.
 # - E.g. the following (without the leading "#") will install the LXDE desktop, the TigerVNC server and the Kodi media centre automatically on first boot:
-AUTO_SETUP_INSTALL_SOFTWARE_ID=0 5 7 9 17 69 72 130
+# 5 	ALSA
+# 7 	FFmpeg
+# 9 	Node.js
+# 17 	Git
+# 72 	I2C
+# 200 	DietPi-Dashboard
+#AUTO_SETUP_INSTALL_SOFTWARE_ID=5 7 9 17 72
+AUTO_SETUP_INSTALL_SOFTWARE_ID=17 72
 
 #------------------------------------------------------------------------------------------------------
 ##### Misc DietPi program settings #####
@@ -214,7 +221,7 @@ CONFIG_NTP_MODE=2
 CONFIG_SERIAL_CONSOLE_ENABLE=0
 
 # Sound card
-CONFIG_SOUNDCARD=hw:0,0
+CONFIG_SOUNDCARD=rpi-bcm2835-hdmi
 
 # LCD Panel addon
 # - Do not modify, you must use dietpi-config to configure/set options
