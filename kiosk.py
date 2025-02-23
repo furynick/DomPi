@@ -429,7 +429,7 @@ while not stop_event.is_set():
     build_ui()
     manage_events()
 
-audio.stop-threads()
+audio.stop_threads()
 api_worker.signalstop("Kiosk shutdown")
 mqtt.shutdown()
 pygame.quit()
