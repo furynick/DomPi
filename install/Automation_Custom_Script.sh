@@ -16,6 +16,7 @@ apt -y install build-essential python3-dev portaudio19-dev
 apt -y install bluez-firmware bluez-alsa-utils alsa-utils dbus bluez
 apt -y install libsdl2-2.0-0 libsdl2-ttf-2.0-0 libsdl2-image-2.0-0 libsdl2-gfx-1.0-0 libts0 libportaudio2 python3-venv
 su - ${KIOSK_USER} -c '[ -d .ssh ] || mkdir .ssh; git clone https://github.com/furynick/DomPi.git &&  DomPi/install/setup.sh'
+cp ${KIOSK_USER}/DomPi/install/pointercal /etc
 
 # Clean
 apt -y purge build-essential python3-dev portaudio19-dev
