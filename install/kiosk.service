@@ -4,7 +4,7 @@ After=network.target
 
 [Service]
 Environment=SDL_FBDEV=/dev/fb0
-#Environment=SDL_VIDEODRIVER=fbcon
+Environment=SDL_VIDEODRIVER=kmsdrm
 #Environment=SDL_AUDIODRIVER=alsa
 Environment=SDL_MOUSEDRV=TSLIB
 Environment=SDL_MOUSEDEV=/dev/input/by-id/usb-WaveShare_WS170120_220211-event-if00
