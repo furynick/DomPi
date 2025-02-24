@@ -251,6 +251,7 @@ def tempoUpdate():
             tempo_tmw=tempo_day.Value
 
 def signal_handler(sig, frame):
+    print(" Interrupt catched")
     stop_event.set()
 
 def click_main(duration_ms, name):
@@ -296,7 +297,6 @@ def manage_events():
 
     # poll for events
     for event in pygame.event.get():
-        print("Event received: %d", event.type)
         # pygame.QUIT event means the user clicked X to close your window
         if event.type == pygame.QUIT:
             stop_event.set()
