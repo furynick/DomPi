@@ -1,29 +1,22 @@
 import mqtt
 import time
-import board
 import audio
 import queue
 import pygame
 import signal
 import locale
-import platform
 import threading
 import pygame.gfxdraw
 from io import BytesIO
 from PIL import Image
 from time import strftime, time_ns
 from const import FRANCE_TZ
+from periph import boiler_relay, sensor, rpi
 from datetime import datetime
 from rtetempo import APIWorker
 from ytmusicapi import YTMusic
 from dataclasses import dataclass
-from adafruit_htu21d import HTU21D
 from collections.abc import Callable
-
-rpi = platform.machine() == "aarch64"
-if rpi:
-    from gpiozero import DigitalOutputDevice
-    relay = DigitalOutputDevice(9)
 
 # Sensitive surfaces
 @dataclass
@@ -45,7 +38,6 @@ main_first_run   = True
 sched_first_run  = True
 info             = False
 animate          = False
-boiler           = False
 batt_max         = 5000.0
 grid_max         = 6800.0
 sol_max          = 2920.0
@@ -57,21 +49,6 @@ ui_page          = 'main'
 gauge_h          = 80
 anim_pct         = 0
 anim_dly         = 5
-
-def boiler_relay(cmd = "Query"):
-    global boiler
-
-    if not rpi:
-        return False
-    if cmd == 'Init':
-        relay.off()
-    if cmd == 'OFF':
-        relay.off()
-        boiler = False
-    if cmd == 'ON':
-        relay.on()
-        boiler = True
-    return boiler
 
 def tempoDraw(state, c, r):
     col = tempo_u_col
@@ -342,13 +319,6 @@ stop_event = threading.Event()           # Clean threads shutdown
 
 # GPIO setup
 boiler_relay('Init')
-
-# Temperature sensor setup
-if rpi:
-    i2c = board.I2C()  # uses board.SCL and board.SDA
-    sensor = HTU21D(i2c)
-else:
-    sensor = None
 
 # pygame setup
 pygame.init()

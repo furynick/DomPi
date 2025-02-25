@@ -1,5 +1,4 @@
 import json
-import time
 import queue
 import signal
 import yt_dlp
@@ -7,8 +6,9 @@ import pyaudio
 import requests
 import threading
 import subprocess
-from io import BytesIO
 from PIL import Image
+from time import sleep
+from io import BytesIO
 from ytmusicapi import YTMusic
 
 # ✅ Global variables
@@ -174,7 +174,7 @@ def manage_audio():
                 process = convert_audio(audio_url)
                 if process is None:
                     retries -= 1
-                    time.sleep(2)
+                    sleep(2)
 
             if process is None:
                 print(f"Failed to convert {audio_url}")
@@ -279,21 +279,21 @@ def stop_threads():
 if __name__ == "__main__":
     print("Start audio test")
     start_threads()
-    time.sleep(5)
+    sleep(5)
     print("Send playlist")
     q_playlist.put('PLdXUFj15Ms0UsN4vUcqEIlm3VsGb_Re1b')
-    time.sleep(10)
+    sleep(10)
     print("Start play audio")
     current_track_info['playing'] = True
-    time.sleep(120)
+    sleep(120)
     print("Next track")
     next_event.set()
-    time.sleep(120)
+    sleep(120)
     print("Pause")
     current_track_info['playing'] = False
-    time.sleep(10)
+    sleep(10)
     print("Resume")
     current_track_info['playing'] = True
-    time.sleep(120)
+    sleep(120)
     print("Exit")
     stop_threads()
