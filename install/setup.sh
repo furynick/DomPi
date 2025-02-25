@@ -16,8 +16,8 @@ cat << EoF | sudo tee /etc/systemd/system/alsa-restore.service.d/no-jack.conf
 Environment=JACK_NO_AUDIO_RESERVATION=1
 EoF
 
-git clone https://github.com/furynick/DomPi.git $HOME/DomPi
-cd $HOME/DomPi
+git clone https://github.com/furynick/DomPi.git ${HOME}/DomPi
+cd ${HOME}/DomPi
 [ -d .venv ] && rm -rf .venv
 if ! [ -d .priv ]; then
   mkdir .priv
@@ -41,5 +41,7 @@ sudo apt -qq -y autoremove --purge
 sudo systemctl daemon-reload
 sudo systemctl restart alsa-restore.service
 sudo systemctl disable --now getty@tty1
+sudo systemctl link ${HOME}/DomPi/install/kiosk.service
+sudo systemctl enable kiosk
 sudo sed -i 's/+console//' /usr/lib/systemd/system/rc-local.service.d/debian.conf
 sudo sed -i 's/=tty1/=tty5/;s/$/ logo.nologo loglevel=1 vt.global_cursor_default=0 consoleblank=0 quiet/' /boot/firmware/cmdline.txt

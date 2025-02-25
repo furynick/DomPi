@@ -15,11 +15,11 @@ Environment=TSLIB_TSDEVICE=/dev/input/by-id/usb-WaveShare_WS170120_220211-event-
 Environment=TSLIB_CALIBFILE=/etc/pointercal
 Environment=TSLIB_CONFFILE=/etc/ts.conf
 Type=simple
-User=dietpi
-WorkingDirectory=/home/dietpi/DomPi
+User=kioskadm
+WorkingDirectory=/home/kioskadm/DomPi
 ExecStartPre=/usr/bin/clear
 #ExecStartPre=/usr/bin/pulseaudio --start
-ExecStart=/bin/sh -c "/usr/bin/nohup /home/dietpi/DomPi/.venv/bin/python3 kiosk.py >/home/dietpi/kiosk.log"
+ExecStart=/bin/sh -c "/usr/bin/nohup /home/kioskadm/DomPi/.venv/bin/python3 kiosk.py >/home/kioskadm/kiosk.log"
 #ExecStopPost=/usr/bin/pulseaudio --kill
 StandardInput=tty
 StandardOutput=tty
