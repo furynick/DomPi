@@ -3,7 +3,15 @@ set -e
 
 REQ_PKGS="git libportaudio2 libopenjp2-7 libgl1-mesa-dri bluez-alsa-utils libegl1 libgl1"
 REQ_PKGS+=" python3-venv libsdl2-image-2.0-0 libsdl2-gfx-1.0-0 libsdl2-ttf-2.0-0"
+REQ_PKGS+=" libopenblas0-pthread libatlas3-base"
 DEV_PKGS="build-essential python3-dev portaudio19-dev libbluetooth-dev"
+DEV_PKGS+=" libsdl2-dev libsdl2-image-dev libjpeg-dev libpng-dev libtiff-dev libx11-dev"
+DEV_PKGS+=" libsdl2-mixer-dev libsdl2-ttf-dev libportmidi-dev libfreetype6-dev"
+DEV_PKGS+=" libatlas-base-dev libopenblas-dev"
+PYGAME_DETECT_AVX2=1
+CFLAGS="-mfpu=neon-vfpv4 -march=armv7-a+neon-vfpv4 -mtune=cortex-a53 -O3"
+MAKEFLAGS="-j$(nproc)"
+export PYGAME_DETECT_AVX2 CFLAGS MAKEFLAGS
 
 sudo apt -qq update
 sudo apt -qq -y dist-upgrade
@@ -29,8 +37,10 @@ python3 -m venv .venv
 source .venv/bin/activate
 pip install wheel
 pip install -r install/requirements.txt
+pip install --use-pep517 --no-binary :all: pygame==2.6.1
 
 sudo cp install/pointercal install/asound.conf /etc
+sudo dpkg-reconfigure locales
 
 # Clean
 [Service]
