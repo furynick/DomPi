@@ -6,6 +6,7 @@ import pygame
 import signal
 import locale
 import threading
+import webserver
 import pygame.gfxdraw
 from io import BytesIO
 from PIL import Image
@@ -43,12 +44,13 @@ grid_max         = 6800.0
 sol_max          = 2920.0
 tempo_now        = 'UNKN'
 tempo_tmw        = 'UNKN'
-cur_temp         = '19.0°'
+cur_temp         = '19,0°'
 cur_hum          = '45%'
 ui_page          = 'main'
-gauge_h          = 80
+cur_wday         = 0
 anim_pct         = 0
 anim_dly         = 5
+gauge_h          = 80
 
 def tempoDraw(state, c, r):
     col = tempo_u_col
@@ -86,13 +88,6 @@ def gaugeDraw(base, pct, col, rev = False):
         for y in range(base, base - count, -1):
             n += 1
             gaugeDrawLine(767, y, n, col)
-
-# Redraw main screen
-def buildSchedUI():
-    global sched_first_run
-
-    screen.blit(background, (0, 0))
-    sched_first_run = False
 
 # Redraw main screen
 def buildMainUI():
@@ -263,6 +258,7 @@ def manage_events():
     global mouse_press
     global anim_pct
     global anim_dly
+    global cur_wday
     global cur_temp
     global cur_hum
     global ui_page
@@ -297,6 +293,7 @@ def manage_events():
         elif event.type == TEMPO_TICK:
             tempoUpdate()
         elif event.type == TEMP_TICK:
+            cur_wday = datetime.datetime.today().isoweekday())
             if sensor:
                 buf = "%0.1f°" % sensor.temperature
                 cur_temp = buf.replace(".", ",")
@@ -313,6 +310,9 @@ def manage_events():
                 anim_pct -= 1
         else:
             print("Unknown event %d", event.type)
+
+def run_flask():
+    webserver.app.run(debug=False, threaded=True)
 
 # Sync events
 stop_event = threading.Event()           # Clean threads shutdown
@@ -392,6 +392,9 @@ tactile_zones.append(TactileZone(click_main, pygame.Rect(270,  35,  48,  70), "b
 
 signal.signal(signal.SIGINT, signal_handler)
 
+global_vars.init()
+flask_thread = threading.Thread(target=run_flask, daemon=True)
+flask_thread.start()
 audio.start_threads()
 
 # Flip pygame display on signal

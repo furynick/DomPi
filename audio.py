@@ -6,6 +6,7 @@ import pyaudio
 import requests
 import threading
 import subprocess
+import global_vars
 from PIL import Image
 from time import sleep
 from io import BytesIO
@@ -15,14 +16,6 @@ from ytmusicapi import YTMusic
 BUFFER_THRESHOLD = 10  # Seuil pour déclencher l'événement de lecture audio
 BUFFER_MAX_SIZE = 50   # Taille maximale du tampon audio
 threads = []           # Ensemble de threads
-current_track_info = {
-    'titre': 'Titre',
-    'artiste': 'Artiste',
-    'album': 'Album',
-    'miniature_url': None,
-    'miniature': None,
-    'playing': False
-}
 
 # ✅ YTMusic initialisation with OAuth
 ytmusic = YTMusic('.priv/oauth.json')
@@ -148,7 +141,6 @@ def convert_audio(audio_url):
 
 # ✅ Thread 3 : Traitement de l'audio (lecture des données + mise à jour de l'interface)
 def manage_audio():
-    global current_track_info
     global stop_event
     global next_event
     global q_play
@@ -161,11 +153,11 @@ def manage_audio():
             next_event.clear()
             
             # ✅ Mise à jour des informations pour l'interface graphique
-            current_track_info['titre'] = track_info['titre']
-            current_track_info['artiste'] = track_info['artiste']
-            current_track_info['album'] = track_info['album']
-            current_track_info['miniature_url'] = track_info['miniature_url']
-            current_track_info['miniature'] = load_thumbnail(track_info['miniature_url']) if track_info['miniature_url'] else None
+            global_vars.current_track_info['titre'] = track_info['titre']
+            global_vars.current_track_info['artiste'] = track_info['artiste']
+            global_vars.current_track_info['album'] = track_info['album']
+            global_vars.current_track_info['miniature_url'] = track_info['miniature_url']
+            global_vars.current_track_info['miniature'] = load_thumbnail(track_info['miniature_url']) if track_info['miniature_url'] else None
             playing = True
 
             retries = 3
@@ -183,8 +175,8 @@ def manage_audio():
 
             buffer_count = 0
             while not stop_event.is_set() and not next_event.is_set():
-                if current_track_info['playing'] != playing:
-                    playing = current_track_info['playing']
+                if global_vars.current_track_info['playing'] != playing:
+                    playing = global_vars.current_track_info['playing']
                     if playing:
                         process.send_signal(18) # SIGCONT
                     else:
@@ -284,16 +276,16 @@ if __name__ == "__main__":
     q_playlist.put('PLdXUFj15Ms0UsN4vUcqEIlm3VsGb_Re1b')
     sleep(10)
     print("Start play audio")
-    current_track_info['playing'] = True
+    global_vars.current_track_info['playing'] = True
     sleep(120)
     print("Next track")
     next_event.set()
     sleep(120)
     print("Pause")
-    current_track_info['playing'] = False
+    global_vars.current_track_info['playing'] = False
     sleep(10)
     print("Resume")
-    current_track_info['playing'] = True
+    global_vars.current_track_info['playing'] = True
     sleep(120)
     print("Exit")
     stop_threads()
