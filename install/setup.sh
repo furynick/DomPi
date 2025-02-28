@@ -3,7 +3,7 @@ set -e
 
 REQ_PKGS="git libportaudio2 libopenjp2-7 libgl1-mesa-dri bluez-alsa-utils libegl1 libgl1"
 REQ_PKGS+=" python3-venv libsdl2-image-2.0-0 libsdl2-gfx-1.0-0 libsdl2-ttf-2.0-0"
-REQ_PKGS+=" libopenblas0-pthread libatlas3-base"
+REQ_PKGS+=" libopenblas0-pthread libatlas3-base lighttpd"
 DEV_PKGS="build-essential python3-dev portaudio19-dev libbluetooth-dev"
 DEV_PKGS+=" libsdl2-dev libsdl2-image-dev libjpeg-dev libpng-dev libtiff-dev libx11-dev"
 DEV_PKGS+=" libsdl2-mixer-dev libsdl2-ttf-dev libportmidi-dev libfreetype6-dev"
@@ -17,11 +17,22 @@ sudo apt -qq update
 sudo apt -qq -y dist-upgrade
 sudo apt -qq -y --no-install-recommends install $REQ_PKGS $DEV_PKGS
 sudo raspi-config nonint do_i2c 0
+sudo lighttpd-enable-mod proxy
 sudo usermod -aG tty $USER
 sudo mkdir /etc/systemd/system/alsa-restore.service.d/
-cat << EoF | sudo tee /etc/systemd/system/alsa-restore.service.d/no-jack.conf
+cat << EoF | sudo dd status=none of=/etc/systemd/system/alsa-restore.service.d/no-jack.conf
 [Service]
 Environment=JACK_NO_AUDIO_RESERVATION=1
+EoF
+cat <<EoF | sudo dd status=none of=/etc/lighttpd/conf-available/10-proxy.conf
+server.modules += ( "mod_proxy" )
+
+proxy.server = (
+    "" => (
+        ( "host" => "127.0.0.1", "port" => 5000 )
+    )
+)
+
 EoF
 
 git clone https://github.com/furynick/DomPi.git ${HOME}/DomPi

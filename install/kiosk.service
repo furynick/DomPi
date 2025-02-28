@@ -24,6 +24,7 @@ ExecStart=/bin/sh -c "/usr/bin/nohup /home/kioskadm/DomPi/.venv/bin/python3 kios
 StandardInput=tty
 StandardOutput=tty
 TTYPath=/dev/tty1
+TimeoutStopSec=10
 KillSignal=2
 
 [Install]

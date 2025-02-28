@@ -7,6 +7,7 @@ import signal
 import locale
 import threading
 import webserver
+import global_vars
 import pygame.gfxdraw
 from io import BytesIO
 from PIL import Image
@@ -169,7 +170,7 @@ def buildMainUI():
     screen.blit(icon_grid,      (830, 251))
     screen.blit(icon_battery,   (830, 361))
     if audio.bt_present:
-        if audio.current_track_info.get('playing'):
+        if global_vars.current_track_info.get('playing'):
             img = pause
         else:
             img = play_enabled
@@ -192,7 +193,7 @@ def buildMainUI():
     r = screen.blit(img, (457, 453))
     if main_first_run:
         tactile_zones.append(TactileZone(click_main, r, "bt", "main"))
-    albumart = audio.current_track_info.get('miniature')
+    albumart = global_vars.current_track_info.get('miniature')
     if not albumart:
         albumart = audio_wait
     r = screen.blit(albumart, (50, 400))
@@ -244,7 +245,7 @@ def click_main(duration_ms, name):
         print("Short click on", name)
         match name:
             case "play":
-                audio.current_track_info['playing'] = not audio.current_track_info['playing']
+                global_vars.current_track_info['playing'] = not global_vars.current_track_info['playing']
             case "next":
                 audio.next_event.set()
             case "info":
@@ -293,7 +294,7 @@ def manage_events():
         elif event.type == TEMPO_TICK:
             tempoUpdate()
         elif event.type == TEMP_TICK:
-            cur_wday = datetime.datetime.today().isoweekday())
+            cur_wday = datetime.today().isoweekday()
             if sensor:
                 buf = "%0.1f°" % sensor.temperature
                 cur_temp = buf.replace(".", ",")

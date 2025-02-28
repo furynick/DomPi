@@ -1,14 +1,50 @@
 <!DOCTYPE html>
-<html lang="en">
+<html lang="fr">
 <head>
     <meta charset="UTF-8">
     <meta name="viewport" content="width=device-width, initial-scale=1.0">
-    <title>Flask App</title>
+    <title>Formulaire de Planification</title>
     <link rel="stylesheet" href="{{ url_for('static', filename='style.css') }}">
     <script src="{{ url_for('static', filename='script.js') }}"></script>
 </head>
 <body>
-    <h1>Welcome to My Flask App!</h1>
     <img src="{{ url_for('static', filename='logo.png') }}" alt="Logo">
+    <h1>Formulaire de Planification</h1>
+    <form id="schedule-form">
+        <label for="weekday">Jour de la semaine:</label>
+        <select name="weekday" id="weekday">
+            <option value="1">Lundi</option>
+            <option value="2">Mardi</option>
+            <option value="3">Mercredi</option>
+            <option value="4">Jeudi</option>
+            <option value="5">Vendredi</option>
+            <option value="6">Samedi</option>
+            <option value="0">Dimanche</option>
+        </select>
+        <br>
+        <label for="start_h">Heure de début:</label>
+        <select name="start_h" id="start_h">
+            <!-- Options de 00 à 23 -->
+            <option value="00">00</option>
+            <option value="01">01</option>
+            <!-- ... autres options ... -->
+            <option value="23">23</option>
+        </select>
+        <select name="start_m" id="start_m">
+            <!-- Options de 00 à 45 avec un incrément de 15 -->
+            <option value="00">00</option>
+            <option value="15">15</option>
+            <option value="30">30</option>
+            <option value="45">45</option>
+        </select>
+        <br>
+        <label for="target_temp">Température (°C):</label>
+        <input type="number" name="target_temp" id="target_temp" step="0.5" min="15" max="25">
+        <br>
+        <button type="button" onclick="submitSchedule()">Ajouter</button>
+    </form>
+
+    <h2>Liste des Planifications</h2>
+    <ul id="schedule-list"></ul>
 </body>
 </html>
