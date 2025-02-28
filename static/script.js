@@ -8,25 +8,70 @@ async function fetchSchedule() {
             }
         });
         const data = await response.json();
-        displaySchedule(data);
+        displaySchedules(data);
     } catch (error) {
         console.error('Erreur lors de la récupération des données:', error);
     }
 }
 
-// Fonction pour afficher les données récupérées
-function displaySchedule(data) {
-    const scheduleList = document.getElementById('schedule-list');
-    scheduleList.innerHTML = '';
-    data.forEach(item => {
-        const listItem = document.createElement('li');
-        listItem.textContent = `Jour: ${item.weekday}, Heure: ${item.startTime}, Température: ${item.temperature}°C`;
-        scheduleList.appendChild(listItem);
+// Fonction pour afficher les données récupérées dans les onglets correspondants
+function displaySchedules(data) {
+    const days = ['Dimanche', 'Lundi', 'Mardi', 'Mercredi', 'Jeudi', 'Vendredi', 'Samedi'];
+    days.forEach((day, index) => {
+        const scheduleList = document.getElementById(`schedule-list-${index}`);
+        if (scheduleList) {
+            scheduleList.innerHTML = '';
+            data.forEach(item => {
+                if (item.weekday === index) {
+                    const listItem = document.createElement('li');
+                    listItem.textContent = `Heure: ${formatTime(item.start_h, item.start_m)}, Température: ${item.target_temp}°C`;
+                    scheduleList.appendChild(listItem);
+                }
+            });
+        }
     });
 }
 
-// Charger les données au chargement de la page
-window.onload = fetchSchedule;
+// Fonction pour obtenir le nom du jour à partir de la valeur
+function getDayName(weekday) {
+    const days = ['Dimanche', 'Lundi', 'Mardi', 'Mercredi', 'Jeudi', 'Vendredi', 'Samedi'];
+    return days[weekday];
+}
+
+// Fonction pour formater l'heure
+function formatTime(hours, minutes) {
+    return `${String(hours).padStart(2, '0')}:${String(minutes).padStart(2, '0')}`;
+}
+
+// Fonction pour ouvrir un onglet spécifique
+function openTab(evt, dayName) {
+    const tabcontent = document.getElementsByClassName("tabcontent");
+    for (let i = 0; i < tabcontent.length; i++) {
+        tabcontent[i].style.display = "none";
+    }
+
+    const tablinks = document.getElementsByClassName("tablinks");
+    for (let i = 0; i < tablinks.length; i++) {
+        tablinks[i].className = tablinks[i].className.replace(" active", "");
+    }
+
+    const tabToShow = document.getElementById(dayName);
+    if (tabToShow) {
+        tabToShow.style.display = "block";
+        evt.currentTarget.className += " active";
+    }
+}
+
+// Charger les données au chargement de la page et ouvrir l'onglet Lundi par défaut
+window.onload = function() {
+    fetchSchedule();
+    const lundiTab = document.getElementById('Lundi');
+    const firstTabLink = document.querySelector('.tablinks');
+    if (lundiTab && firstTabLink) {
+        lundiTab.style.display = 'block';
+        firstTabLink.classList.add('active');
+    }
+}
 
 // Fonction pour soumettre le formulaire
 async function submitSchedule() {
@@ -36,9 +81,10 @@ async function submitSchedule() {
     const temperature = document.getElementById('target_temp').value;
 
     const scheduleItem = {
-        weekday: weekday,
-        startTime: `${startHour}:${startMinute}`,
-        temperature: temperature
+        weekday: parseInt(weekday),
+        start_h: parseInt(startHour),
+        start_m: parseInt(startMinute),
+        target_temp: parseFloat(temperature)
     };
 
     try {
@@ -47,7 +93,7 @@ async function submitSchedule() {
             headers: {
                 'Content-Type': 'application/json'
             },
-            body: JSON.stringify(scheduleItem)
+            body: JSON.stringify([scheduleItem])
         });
 
         if (response.ok) {

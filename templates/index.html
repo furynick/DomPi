@@ -4,10 +4,10 @@
     <meta charset="UTF-8">
     <meta name="viewport" content="width=device-width, initial-scale=1.0">
     <title>Formulaire de Planification</title>
-    <link rel="stylesheet" href="{{ url_for('static', filename='style.css') }}">
+    <link rel="stylesheet" href="{{ url_for('static', filename='styles.css') }}">
     <script src="{{ url_for('static', filename='script.js') }}"></script>
-</head>
-<body>
+ </head>
+ <body>
     <img src="{{ url_for('static', filename='logo.png') }}" alt="Logo">
     <h1>Formulaire de Planification</h1>
     <form id="schedule-form">
@@ -24,27 +24,87 @@
         <br>
         <label for="start_h">Heure de début:</label>
         <select name="start_h" id="start_h">
-            <!-- Options de 00 à 23 -->
             <option value="00">00</option>
             <option value="01">01</option>
-            <!-- ... autres options ... -->
+            <option value="02">02</option>
+            <option value="03">03</option>
+            <option value="04">04</option>
+            <option value="05">05</option>
+            <option value="06" selected>06</option>
+            <option value="07">07</option>
+            <option value="08">08</option>
+            <option value="09">09</option>
+            <option value="10">10</option>
+            <option value="11">11</option>
+            <option value="12">12</option>
+            <option value="13">13</option>
+            <option value="14">14</option>
+            <option value="15">15</option>
+            <option value="16">16</option>
+            <option value="17">17</option>
+            <option value="18">18</option>
+            <option value="19">19</option>
+            <option value="20">20</option>
+            <option value="21">21</option>
+            <option value="22">22</option>
             <option value="23">23</option>
         </select>
         <select name="start_m" id="start_m">
-            <!-- Options de 00 à 45 avec un incrément de 15 -->
-            <option value="00">00</option>
+            <option value="00" selected>00</option>
             <option value="15">15</option>
             <option value="30">30</option>
             <option value="45">45</option>
         </select>
         <br>
         <label for="target_temp">Température (°C):</label>
-        <input type="number" name="target_temp" id="target_temp" step="0.5" min="15" max="25">
+        <input type="number" name="target_temp" id="target_temp" step="0.5" min="15" max="25" value="18">
         <br>
         <button type="button" onclick="submitSchedule()">Ajouter</button>
     </form>
 
-    <h2>Liste des Planifications</h2>
-    <ul id="schedule-list"></ul>
+    <div class="tab">
+        <button class="tablinks" onclick="openTab(event, 'Lundi')">Lundi</button>
+        <button class="tablinks" onclick="openTab(event, 'Mardi')">Mardi</button>
+        <button class="tablinks" onclick="openTab(event, 'Mercredi')">Mercredi</button>
+        <button class="tablinks" onclick="openTab(event, 'Jeudi')">Jeudi</button>
+        <button class="tablinks" onclick="openTab(event, 'Vendredi')">Vendredi</button>
+        <button class="tablinks" onclick="openTab(event, 'Samedi')">Samedi</button>
+        <button class="tablinks" onclick="openTab(event, 'Dimanche')">Dimanche</button>
+    </div>
+
+    <div id="Lundi" class="tabcontent">
+        <h3>Lundi</h3>
+        <ul class="schedule-list" id="schedule-list-1"></ul>
+    </div>
+
+    <div id="Mardi" class="tabcontent">
+        <h3>Mardi</h3>
+        <ul class="schedule-list" id="schedule-list-2"></ul>
+    </div>
+
+    <div id="Mercredi" class="tabcontent">
+        <h3>Mercredi</h3>
+        <ul class="schedule-list" id="schedule-list-3"></ul>
+    </div>
+
+    <div id="Jeudi" class="tabcontent">
+        <h3>Jeudi</h3>
+        <ul class="schedule-list" id="schedule-list-4"></ul>
+    </div>
+
+    <div id="Vendredi" class="tabcontent">
+        <h3>Vendredi</h3>
+        <ul class="schedule-list" id="schedule-list-5"></ul>
+    </div>
+
+    <div id="Samedi" class="tabcontent">
+        <h3>Samedi</h3>
+        <ul class="schedule-list" id="schedule-list-6"></ul>
+    </div>
+
+    <div id="Dimanche" class="tabcontent">
+        <h3>Dimanche</h3>
+        <ul class="schedule-list" id="schedule-list-0"></ul>
+    </div>
 </body>
 </html>
