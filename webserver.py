@@ -27,10 +27,12 @@ def get_schedule():
 def add_schedule():
     req_keys = ["weekday", "start_h", "start_m", "target_temp"]
     data = request.get_json()
+    # print(data, flush=True)
 
     if check_data(data):
         schedule = {key: data[key] for key in req_keys if key in data}
-        global_vars.boiler_schedule.append()
+        global_vars.boiler_schedule.append(schedule)
+        global_vars.boiler_schedule = sorted(global_vars.boiler_schedule, key=lambda x: (x["weekday"], x["start_h"], x["start_m"]))
         global_vars.save_schedule()
         return jsonify({"success": True, "append": schedule})
     return jsonify({"success": False, "error": "Invalid data or missing value"}), 400
@@ -38,9 +40,11 @@ def add_schedule():
 @app.route('/schedule', methods=['DELETE'])
 def del_schedule():
     data = request.get_json()
-    if "id" in data:
-        if data["id"] < len(boiler_schedule):
-            schedule = global_vars.boiler_schedule.pop(data['id'])
+    # print(data, flush=True)
+
+    if "index" in data:
+        if data["index"] < len(global_vars.boiler_schedule):
+            schedule = global_vars.boiler_schedule.pop(data['index'])
             global_vars.save_schedule()
             return jsonify({"success": True, "deleted": schedule})
     return jsonify({"success": False, "error": "Invalid id or missing value"}), 400

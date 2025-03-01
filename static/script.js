@@ -21,15 +21,46 @@ function displaySchedules(data) {
         const scheduleList = document.getElementById(`schedule-list-${index}`);
         if (scheduleList) {
             scheduleList.innerHTML = '';
-            data.forEach(item => {
+            data.forEach((item, itemIndex) => {
                 if (item.weekday === index) {
                     const listItem = document.createElement('li');
-                    listItem.textContent = `Heure: ${formatTime(item.start_h, item.start_m)}, Température: ${item.target_temp}°C`;
+                    const deleteLink = document.createElement('a');
+                    deleteLink.href = '#';
+                    deleteLink.innerHTML = '❌';
+                    deleteLink.style.color = 'red';
+                    deleteLink.style.marginRight = '8px';
+                    deleteLink.addEventListener('click', async (event) => {
+                        event.preventDefault();
+                        await deleteScheduleItem(itemIndex);
+                    });
+                    listItem.appendChild(deleteLink);
+                    listItem.appendChild(document.createTextNode(`Heure: ${formatTime(item.start_h, item.start_m)}, Température: ${item.target_temp}°C`));
                     scheduleList.appendChild(listItem);
                 }
             });
         }
     });
+}
+
+// Fonction pour supprimer un élément de la planification
+async function deleteScheduleItem(index) {
+    try {
+        const response = await fetch('/schedule', {
+            method: 'DELETE',
+            headers: {
+                'Content-Type': 'application/json'
+            },
+            body: JSON.stringify({index})
+        });
+
+        if (response.ok) {
+            fetchSchedule(); // Recharger la liste après la suppression
+        } else {
+            console.error('Erreur lors de la suppression de la planification:', response.statusText);
+        }
+    } catch (error) {
+        console.error('Erreur lors de la suppression de la planification:', error);
+    }
 }
 
 // Fonction pour obtenir le nom du jour à partir de la valeur
@@ -93,7 +124,7 @@ async function submitSchedule() {
             headers: {
                 'Content-Type': 'application/json'
             },
-            body: JSON.stringify([scheduleItem])
+            body: JSON.stringify(scheduleItem)
         });
 
         if (response.ok) {
