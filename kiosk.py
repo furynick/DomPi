@@ -39,6 +39,7 @@ ydl_opts         = {"geturl": True, "quiet": True}
 main_first_run   = True
 sched_first_run  = True
 info             = False
+forced           = False
 animate          = False
 batt_max         = 5000.0
 grid_max         = 6800.0
@@ -229,6 +230,7 @@ def signal_handler(sig, frame):
 
 def click_main(duration_ms, name):
     global info
+    global forced
 
     if duration_ms > 1000: # very long press
         print("Very long click on", name)
@@ -237,8 +239,10 @@ def click_main(duration_ms, name):
         match name:
             case "boiler":
                 if boiler_relay():
+                    forced = False
                     boiler_relay('OFF')
                 else:
+                    forced = True
                     boiler_relay('ON')
                     pygame.time.set_timer(BOILER_OFF, 20*60000, 1)
     else: # short press
@@ -264,6 +268,7 @@ def manage_events():
     global cur_hum
     global ui_page
     global bt_addr
+    global forced
     global client
     global sensor
     global screen
@@ -294,12 +299,31 @@ def manage_events():
         elif event.type == TEMPO_TICK:
             tempoUpdate()
         elif event.type == TEMP_TICK:
-            cur_wday = datetime.today().isoweekday()
+            now = datetime.now()
+            cur_w = now.isoweekday()
+            cur_h = now.hour
+            cur_m = now.minute
+
             if sensor:
                 buf = "%0.1f°" % sensor.temperature
                 cur_temp = buf.replace(".", ",")
                 cur_hum  = "%d%%" % int(sensor.relative_humidity)
+
+                for entry in global_vars.boiler_schedule:
+                    if entry["weekday"] == cur_w:
+                        if (entry["start_h"] > cur_h or
+                            (entry["start_h"] == cur_h and entry["start_m"] >= cur_m)):
+                            target_temp = entry["target_temp"]
+                            break
+                else:
+                    target_temp = global_vars.boiler_schedule[-1]["target_temp"]
+                if target_temp > sensor.temperature:
+                    boiler_relay('ON')
+                else:
+                    if not forced:
+                        boiler_relay('OFF')
         elif event.type == BOILER_OFF:
+            forced = False
             boiler_relay('OFF')
         elif event.type == INFO_OFF:
             info = False
