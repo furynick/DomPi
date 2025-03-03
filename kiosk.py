@@ -15,6 +15,7 @@ from time import strftime, time_ns
 from const import FRANCE_TZ
 from periph import boiler_relay, sensor, rpi
 from datetime import datetime
+from sdnotify import SystemdNotifier
 from rtetempo import APIWorker
 from ytmusicapi import YTMusic
 from dataclasses import dataclass
@@ -296,6 +297,8 @@ def manage_events():
             pass
         elif event.type == MQTT_TICK:
             mqtt.keepalive()
+        elif event.type == WDOG_TICK:
+            notifier.notify("WATCHDOG=1")
         elif event.type == TEMPO_TICK:
             tempoUpdate()
         elif event.type == TEMP_TICK:
@@ -395,12 +398,15 @@ font_hum      = pygame.font.Font('fonts/OpenSans-Medium.ttf', 65)
 TEMPO_TICK = pygame.event.custom_type()
 TEMP_TICK  = pygame.event.custom_type()
 MQTT_TICK  = pygame.event.custom_type()
+WDOG_TICK  = pygame.event.custom_type()
 BOILER_OFF = pygame.event.custom_type()
 INFO_OFF   = pygame.event.custom_type()
 ANIMATE    = pygame.event.custom_type()
 pygame.time.set_timer(TEMPO_TICK, 120000)
 pygame.time.set_timer(MQTT_TICK,   30000)
+pygame.time.set_timer(WDOG_TICK,   20000)
 pygame.time.set_timer(TEMP_TICK,    3000)
+notifier = SystemdNotifier()
 
 # RTE Tempo setup
 api_worker = APIWorker(

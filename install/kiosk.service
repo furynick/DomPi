@@ -18,13 +18,13 @@ Type=simple
 User=kioskadm
 WorkingDirectory=/home/kioskadm/DomPi
 ExecStartPre=/usr/bin/clear
-#ExecStartPre=/usr/bin/pulseaudio --start
-ExecStart=/bin/sh -c "/usr/bin/nohup /home/kioskadm/DomPi/.venv/bin/python3 kiosk.py >/home/kioskadm/kiosk.log"
-#ExecStopPost=/usr/bin/pulseaudio --kill
+ExecStart=/home/kioskadm/DomPi/.venv/bin/python3 kiosk.py
 StandardInput=tty
-StandardOutput=tty
+StandardOutput=journal
+StandardError=journal
 TTYPath=/dev/tty1
 TimeoutStopSec=10
+WatchdogSec=30s
 KillSignal=2
 
 [Install]
