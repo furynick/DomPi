@@ -4,7 +4,7 @@ from flask import Flask, request, jsonify, send_from_directory, render_template
 app = Flask(__name__)
 
 def check_data(data):
-    if "weekday" in data and isinstance(data["weekday"], int) and 0 <= data["weekday"] <= 6:
+    if "weekday" in data and isinstance(data["weekday"], int) and 1 <= data["weekday"] <= 7:
         if "start_h" in data and isinstance(data["start_h"], int) and 0 <= data["start_h"] <= 23:
             if "start_m" in data and isinstance(data["start_m"], int) and 0 <= data["start_m"] <= 59:
                 if "target_temp" in data and isinstance(data["target_temp"], (int, float)):

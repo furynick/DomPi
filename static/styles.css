@@ -2,6 +2,7 @@
     overflow: hidden;
     border: 1px solid #ccc;
     background-color: #f1f1f1;
+    margin-top: 20px; /* Ajoute de l'espace entre le formulaire et les onglets */
 }
 
 .tab button {
@@ -30,5 +31,46 @@
 }
 
 a, u {
-  text-decoration: none;
+    text-decoration: none;
+}
+
+/* Supprimer les puces des listes */
+.schedule-list {
+    list-style-type: none;
+    padding: 0;
+}
+
+.schedule-list li {
+    margin-bottom: 5px; /* Ajoute un peu d'espace entre les éléments de la liste */
+}
+
+/* Styles pour le formulaire */
+form {
+    display: flex;
+    flex-wrap: wrap;
+    gap: 10px;
+    align-items: center;
+}
+
+form label {
+    flex: 1 1 100px; /* Ajustez la largeur minimale selon vos besoins */
+}
+
+form select, form input {
+    flex: 1;
+    padding: 8px;
+    margin-right: 10px;
+}
+
+form button {
+    padding: 10px 20px;
+    background-color: #4CAF50;
+    color: white;
+    border: none;
+    cursor: pointer;
+    border-radius: 5px;
+}
+
+form button:hover {
+    background-color: #45a049;
 }

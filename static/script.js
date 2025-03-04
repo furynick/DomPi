@@ -1,3 +1,15 @@
+let activeDay = 1; // Par défaut, Lundi
+
+const days = {
+    'Dimanche': 7,
+    'Lundi': 1,
+    'Mardi': 2,
+    'Mercredi': 3,
+    'Jeudi': 4,
+    'Vendredi': 5,
+    'Samedi': 6
+};
+
 // Fonction pour récupérer et afficher les données de l'URI /schedule
 async function fetchSchedule() {
     try {
@@ -16,8 +28,7 @@ async function fetchSchedule() {
 
 // Fonction pour afficher les données récupérées dans les onglets correspondants
 function displaySchedules(data) {
-    const days = ['Dimanche', 'Lundi', 'Mardi', 'Mercredi', 'Jeudi', 'Vendredi', 'Samedi'];
-    days.forEach((day, index) => {
+    Object.values(days).forEach((index) => {
         const scheduleList = document.getElementById(`schedule-list-${index}`);
         if (scheduleList) {
             scheduleList.innerHTML = '';
@@ -50,7 +61,7 @@ async function deleteScheduleItem(index) {
             headers: {
                 'Content-Type': 'application/json'
             },
-            body: JSON.stringify({index})
+            body: JSON.stringify({ index }) // Envoyer un objet simple
         });
 
         if (response.ok) {
@@ -61,12 +72,6 @@ async function deleteScheduleItem(index) {
     } catch (error) {
         console.error('Erreur lors de la suppression de la planification:', error);
     }
-}
-
-// Fonction pour obtenir le nom du jour à partir de la valeur
-function getDayName(weekday) {
-    const days = ['Dimanche', 'Lundi', 'Mardi', 'Mercredi', 'Jeudi', 'Vendredi', 'Samedi'];
-    return days[weekday];
 }
 
 // Fonction pour formater l'heure
@@ -90,6 +95,7 @@ function openTab(evt, dayName) {
     if (tabToShow) {
         tabToShow.style.display = "block";
         evt.currentTarget.className += " active";
+        activeDay = days[dayName]; // Mettre à jour activeDay en fonction du nom de l'onglet
     }
 }
 
@@ -101,18 +107,18 @@ window.onload = function() {
     if (lundiTab && firstTabLink) {
         lundiTab.style.display = 'block';
         firstTabLink.classList.add('active');
+        activeDay = days['Lundi']; // Initialiser activeDay avec Lundi
     }
 }
 
 // Fonction pour soumettre le formulaire
 async function submitSchedule() {
-    const weekday = document.getElementById('weekday').value;
     const startHour = document.getElementById('start_h').value;
     const startMinute = document.getElementById('start_m').value;
     const temperature = document.getElementById('target_temp').value;
 
     const scheduleItem = {
-        weekday: parseInt(weekday),
+        weekday: activeDay,
         start_h: parseInt(startHour),
         start_m: parseInt(startMinute),
         target_temp: parseFloat(temperature)
@@ -124,7 +130,7 @@ async function submitSchedule() {
             headers: {
                 'Content-Type': 'application/json'
             },
-            body: JSON.stringify(scheduleItem)
+            body: JSON.stringify(scheduleItem) // Envoyer un objet simple
         });
 
         if (response.ok) {
