@@ -1,7 +1,4 @@
 import mqtt
-import time
-import audio
-import queue
 import pygame
 import signal
 import locale
@@ -9,15 +6,12 @@ import threading
 import webserver
 import global_vars
 import pygame.gfxdraw
-from io import BytesIO
-from PIL import Image
 from time import strftime, time_ns
 from const import FRANCE_TZ
-from periph import boiler_relay, sensor, rpi
+from periph import boiler_relay, rpi, sensor
 from datetime import datetime
 from sdnotify import SystemdNotifier
 from rtetempo import APIWorker
-from ytmusicapi import YTMusic
 from dataclasses import dataclass
 from collections.abc import Callable
 
@@ -36,12 +30,10 @@ except:
     pass
 
 # Global variables
-ydl_opts         = {"geturl": True, "quiet": True}
-main_first_run   = True
-sched_first_run  = True
 info             = False
 forced           = False
-animate          = False
+first_run        = True
+display_cur      = True
 batt_max         = 5000.0
 grid_max         = 6800.0
 sol_max          = 2920.0
@@ -50,7 +42,7 @@ tempo_tmw        = 'UNKN'
 cur_temp         = '19,0°'
 cur_hum          = '45%'
 ui_page          = 'main'
-cur_wday         = 0
+target_temp      = 19.0
 anim_pct         = 0
 anim_dly         = 5
 gauge_h          = 80
@@ -94,14 +86,15 @@ def gaugeDraw(base, pct, col, rev = False):
 
 # Redraw main screen
 def buildMainUI():
-    global info
     global cur_hum
     global anim_pct
     global cur_temp
+    global first_run
     global tempo_now
     global tempo_tmw
-    global main_first_run
-    global tactile_zones
+    global font_hour
+    global target_temp
+    global display_cur
 
     cur_time = strftime('%H:%M')
     cur_date = strftime('%A ') + strftime('%d').lstrip('0') + strftime(' %B %Y')
@@ -111,9 +104,9 @@ def buildMainUI():
     tempoDraw(tempo_now, (863, 63), 17)
     tempoDraw(tempo_tmw, (900, 67), 13)
     r = pygame.Rect(699 - anim_pct, 112, 269 + anim_pct, 432)
-    pygame.draw.rect(screen, fground_col, r, 2, 33)
-    if main_first_run:
+    if first_run:
         tactile_zones.append(TactileZone(click_main, r, "info", "main"))
+    pygame.draw.rect(screen, fground_col, r, 2, 33)
     if anim_pct != 100:
         gaugeDraw(216, int(100.0 * mqtt.solar_pw / sol_max), solar_col)
         if mqtt.grid_pw > 0.0:
@@ -136,19 +129,27 @@ def buildMainUI():
 
     date_srf = font_date.render(cur_date, True, fground_col, None)
     date_crd = date_srf.get_rect()
-    date_crd.center = (295, 150)
+    date_crd.center = (330, 190)
 
+    hour_pos = 330
+    if (anim_pct > 0):
+        font_hour = pygame.font.Font('fonts/Courgette-Regular.ttf', 240 - int(40 * anim_pct / 100))
+        hour_pos -= int(30 * anim_pct / 100)
     hour_srf = font_hour.render(cur_time, True, fground_col, None)
     hour_crd = hour_srf.get_rect()
-    hour_crd.center = (300, 300)
+    hour_crd.center = (hour_pos, 380)
 
-    temp_srf = font_temp.render(cur_temp, True, fground_col, None)
+    if display_cur:
+        temp_srf = font_temp.render(cur_temp, True, fground_col, None)
+    else:
+        buf = "%0.1f°" % target_temp
+        temp_srf = font_temp.render(buf.replace(".", ","), True, target_col, None)
     temp_crd = temp_srf.get_rect()
-    temp_crd.center = (180,  80)
+    temp_crd.center = (255, 100)
 
     hum_srf  = font_hum.render (cur_hum , True, fground_col, None)
     hum_crd  = hum_srf.get_rect()
-    hum_crd.center =  (390,  80)
+    hum_crd.center =  (465, 100)
 
     batt_srf = font_batt.render(mqtt.cur_batt, True, fground_col, None)
     batt_crd = batt_srf.get_rect()
@@ -160,48 +161,26 @@ def buildMainUI():
 
     screen.blit(hour_srf, hour_crd)
     screen.blit(date_srf, date_crd)
-    screen.blit(temp_srf, temp_crd)
+    r = screen.blit(temp_srf, temp_crd)
+    tactile_zones.append(TactileZone(click_main, r, "temp", "main"))
     screen.blit(hum_srf,  hum_crd)
     screen.blit(batt_srf, batt_crd)
     screen.blit(text_srf, text_crd)
     if boiler_relay():
-        screen.blit(blue_flame, (275, 50))
+        r = screen.blit(blue_flame, (350, 70))
     else:
-        screen.blit(grey_flame, (275, 50))
+        r = screen.blit(grey_flame, (350, 70))
+    if first_run:
+        tactile_zones.append(TactileZone(click_main, r, "boiler", "main"))
     screen.blit(icon_solar,     (830, 138))
     screen.blit(icon_grid,      (830, 251))
     screen.blit(icon_battery,   (830, 361))
-    if audio.bt_present:
-        if global_vars.current_track_info.get('playing'):
-            img = pause
-        else:
-            img = play_enabled
-    else:
-        img = play_disabled
-    r = screen.blit(img , (255, 453))
-    if main_first_run:
-        tactile_zones.append(TactileZone(click_main, r, "play", "main"))
-    if audio.bt_present:
-        img = next_enabled
-    else:
-        img = next_disabled
-    r = screen.blit(img,  (352, 453))
-    if main_first_run:
-        tactile_zones.append(TactileZone(click_main, r, "next", "main"))
-    if audio.bt_present:
-        img = bt_enabled
-    else:
-        img = bt_disabled
-    r = screen.blit(img, (457, 453))
-    if main_first_run:
-        tactile_zones.append(TactileZone(click_main, r, "bt", "main"))
-    albumart = global_vars.current_track_info.get('miniature')
-    if not albumart:
-        albumart = audio_wait
-    r = screen.blit(albumart, (50, 400))
-    if main_first_run:
-        tactile_zones.append(TactileZone(click_main, r, "playlist", "main"))
-    main_first_run = False
+    first_run = False
+
+def buildSchedUI():
+    global ui_page
+
+    ui_page = "main"
 
 def build_ui():
     if ui_page == "main":
@@ -232,6 +211,7 @@ def signal_handler(sig, frame):
 def click_main(duration_ms, name):
     global info
     global forced
+    global display_cur
 
     if duration_ms > 1000: # very long press
         print("Very long click on", name)
@@ -249,10 +229,10 @@ def click_main(duration_ms, name):
     else: # short press
         print("Short click on", name)
         match name:
-            case "play":
-                global_vars.current_track_info['playing'] = not global_vars.current_track_info['playing']
-            case "next":
-                audio.next_event.set()
+            case "temp":
+                display_cur = not display_cur
+                if not display_cur:
+                    pygame.time.set_timer(TARGET_OFF, 15000,  1)
             case "info":
                 if not info:
                     info = True
@@ -261,17 +241,15 @@ def click_main(duration_ms, name):
 
 def manage_events():
     global tactile_zones
+    global display_cur
+    global target_temp
     global mouse_press
     global anim_pct
     global anim_dly
-    global cur_wday
     global cur_temp
     global cur_hum
     global ui_page
-    global bt_addr
     global forced
-    global client
-    global sensor
     global screen
     global info
 
@@ -302,6 +280,7 @@ def manage_events():
         elif event.type == TEMPO_TICK:
             tempoUpdate()
         elif event.type == TEMP_TICK:
+            print("Check for temp")
             now = datetime.now()
             cur_w = now.isoweekday()
             cur_h = now.hour
@@ -314,9 +293,10 @@ def manage_events():
 
                 for entry in global_vars.boiler_schedule:
                     if entry["weekday"] == cur_w:
-                        if (entry["start_h"] > cur_h or
-                            (entry["start_h"] == cur_h and entry["start_m"] >= cur_m)):
+                        if (cur_h > entry["start_h"] or
+                            (entry["start_h"] == cur_h and cur_m >= entry["start_m"])):
                             target_temp = entry["target_temp"]
+                            print("Target temp for schedule starting at %02d:%02d on %d is %0.1f\n", entry["start_h"], entry["start_m"], entry["weekday"], entry["target_temp"])
                             break
                 else:
                     target_temp = global_vars.boiler_schedule[-1]["target_temp"]
@@ -336,6 +316,8 @@ def manage_events():
                 anim_pct += 1
             else:
                 anim_pct -= 1
+        elif event.type == TARGET_OFF:
+            display_cur = True
         else:
             print("Unknown event %d", event.type)
 
@@ -360,7 +342,7 @@ clock  = pygame.time.Clock()
 
 # Colors setup
 bground_col = pygame.Color(  0,   0,   0)
-fground_col = pygame.Color(240, 240, 240)
+fground_col = pygame.Color(220, 240, 240)
 tempo_r_col = pygame.Color(220,   0,   0)
 tempo_w_col = pygame.Color(220, 220, 220)
 tempo_b_col = pygame.Color(  0,   0, 220)
@@ -370,6 +352,7 @@ bat_dch_col = pygame.Color(225, 142, 233)
 bat_chg_col = pygame.Color( 71, 144, 208)
 grid_fw_col = pygame.Color(233, 122, 131)
 grid_bw_col = pygame.Color(212, 222,  95)
+target_col  = pygame.Color(255, 201,  14)
 solar_col   = pygame.Color(255, 202,  13)
 
 # Load assets
@@ -379,15 +362,7 @@ grey_flame    = pygame.image.load('images/grey-flame.png')
 icon_battery  = pygame.image.load('images/icon-battery.png')
 icon_grid     = pygame.image.load('images/icon-grid.png')
 icon_solar    = pygame.image.load('images/icon-solar.png')
-play_disabled = pygame.image.load('images/play-disabled.png')
-play_enabled  = pygame.image.load('images/play-enabled.png')
-pause         = pygame.image.load('images/pause.png')
-audio_wait    = pygame.image.load('images/audio_wait.jpg')
-next_disabled = pygame.image.load('images/next-disabled.png')
-next_enabled  = pygame.image.load('images/next-enabled.png')
-bt_disabled   = pygame.image.load('images/bt-disabled.png')
-bt_enabled    = pygame.image.load('images/bt-enabled.png')
-font_hour     = pygame.font.Font('fonts/Courgette-Regular.ttf', 200)
+font_hour     = pygame.font.Font('fonts/Courgette-Regular.ttf', 240)
 font_text     = pygame.font.Font('fonts/OpenSans-Medium.ttf', 24)
 font_date     = pygame.font.Font('fonts/OpenSans-Medium.ttf', 36)
 font_batt     = pygame.font.Font('fonts/OpenSans-Medium.ttf', 50)
@@ -402,6 +377,7 @@ WDOG_TICK  = pygame.event.custom_type()
 BOILER_OFF = pygame.event.custom_type()
 INFO_OFF   = pygame.event.custom_type()
 ANIMATE    = pygame.event.custom_type()
+TARGET_OFF = pygame.event.custom_type()
 pygame.time.set_timer(TEMPO_TICK, 120000)
 pygame.time.set_timer(MQTT_TICK,   30000)
 pygame.time.set_timer(WDOG_TICK,   20000)
@@ -419,21 +395,18 @@ api_worker.start()
 mqtt.setup('192.168.0.141', 1883)
 
 tactile_zones = []
-tactile_zones.append(TactileZone(click_main, pygame.Rect(270,  35,  48,  70), "boiler", "main"))
 
 signal.signal(signal.SIGINT, signal_handler)
 
 global_vars.init()
 flask_thread = threading.Thread(target=run_flask, daemon=True)
 flask_thread.start()
-audio.start_threads()
 
 # Flip pygame display on signal
 while not stop_event.is_set():
     build_ui()
     manage_events()
 
-audio.stop_threads()
 api_worker.signalstop("Kiosk shutdown")
 mqtt.shutdown()
 pygame.quit()

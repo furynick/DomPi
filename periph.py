@@ -28,11 +28,13 @@ def boiler_relay(cmd = "Query"):
     if relay == None:
         return False
     if cmd == 'OFF':
-        print("Relay OFF")
-        relay.off()
+        if relay.value:
+            print("Relay OFF")
+            relay.off()
     if cmd == 'ON':
-        print("Relay ON")
-        relay.on()
+        if not relay.value:
+            print("Relay ON")
+            relay.on()
     return relay.value == 1
 
 if __name__ == "__main__":
