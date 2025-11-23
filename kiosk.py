@@ -30,19 +30,40 @@ except:
     pass
 
 # Global variables
+ignored_evt      = [
+        pygame.WINDOWLEAVE,
+        pygame.WINDOWENTER,
+        pygame.WINDOWCLOSE,
+        pygame.WINDOWEXPOSED,
+        pygame.WINDOWSIZECHANGED,
+        pygame.WINDOWSHOWN,
+        pygame.WINDOWHIDDEN,
+        pygame.WINDOWFOCUSGAINED,
+        pygame.MOUSEBUTTONDOWN,
+        pygame.MOUSEBUTTONUP,
+        pygame.MOUSEMOTION,
+        pygame.VIDEOEXPOSE,
+        pygame.ACTIVEEVENT,
+        pygame.AUDIODEVICEADDED,
+        pygame.AUDIODEVICEREMOVED,
+        pygame.FINGERMOTION]
 info             = False
 forced           = False
+pressed          = False
 first_run        = True
 display_cur      = True
 batt_max         = 5000.0
 grid_max         = 6800.0
 sol_max          = 2920.0
+target_temp      = 19.0
 tempo_now        = 'UNKN'
 tempo_tmw        = 'UNKN'
 cur_temp         = '19,0°'
 cur_hum          = '45%'
 ui_page          = 'main'
-target_temp      = 19.0
+debounce_dly     = 100000000
+start_press      = 0
+debounce         = 0
 anim_pct         = 0
 anim_dly         = 5
 gauge_h          = 80
@@ -162,7 +183,8 @@ def buildMainUI():
     screen.blit(hour_srf, hour_crd)
     screen.blit(date_srf, date_crd)
     r = screen.blit(temp_srf, temp_crd)
-    tactile_zones.append(TactileZone(click_main, r, "temp", "main"))
+    if first_run:
+        tactile_zones.append(TactileZone(click_main, r, "temp", "main"))
     screen.blit(hum_srf,  hum_crd)
     screen.blit(batt_srf, batt_crd)
     screen.blit(text_srf, text_crd)
@@ -213,19 +235,18 @@ def click_main(duration_ms, name):
     global forced
     global display_cur
 
-    if duration_ms > 1000: # very long press
+    if duration_ms > 3000: # very long press
         print("Very long click on", name)
-    elif duration_ms > 150: # long press
+    elif duration_ms > 1000: # long press
         print("Long click on", name)
         match name:
             case "boiler":
+                forced = True
                 if boiler_relay():
-                    forced = False
                     boiler_relay('OFF')
                 else:
-                    forced = True
                     boiler_relay('ON')
-                    pygame.time.set_timer(BOILER_OFF, 20*60000, 1)
+                pygame.time.set_timer(BOILER_OFF, 20*60000, 1)
     else: # short press
         print("Short click on", name)
         match name:
@@ -243,36 +264,51 @@ def manage_events():
     global tactile_zones
     global display_cur
     global target_temp
-    global mouse_press
+    global start_press
+    global debounce
     global anim_pct
     global anim_dly
     global cur_temp
     global cur_hum
     global ui_page
+    global pressed
     global forced
     global screen
     global info
 
+    debounce_now = time_ns()
+
     # poll for events
     for event in pygame.event.get():
-        # pygame.QUIT event means the user clicked X to close your window
         if event.type == pygame.QUIT:
             stop_event.set()
-        elif event.type in [pygame.MOUSEBUTTONDOWN, pygame.MOUSEBUTTONUP, pygame.MOUSEMOTION, pygame.VIDEOEXPOSE, pygame.ACTIVEEVENT]:
-            pass
-        elif event.type == pygame.FINGERMOTION:
-            pass
-        elif event.type in [pygame.AUDIODEVICEADDED, pygame.AUDIODEVICEREMOVED]:
+        elif event.type in ignored_evt:
             pass
         elif event.type == pygame.FINGERDOWN:
-            mouse_press = time_ns()
+            print("Screen touched", flush=True)
+            if not pressed and debounce_now > debounce:
+                print("Press event catched", flush=True)
+                start_press = debounce_now
+                debounce = debounce_now + debounce_dly 
+                pressed = True
+            else:
+                print("Press event ignored", flush=True)
         elif event.type == pygame.FINGERUP:
-            mouse_press = time_ns() - mouse_press
-            for zone in tactile_zones:
-                if zone.rect.collidepoint((int(event.x * screen.get_width()), int(event.y * screen.get_height()))) and zone.page == ui_page:
-                    zone._cb(int(mouse_press/1000000), zone.name)
-        elif event.type in [pygame.WINDOWLEAVE, pygame.WINDOWENTER, pygame.WINDOWCLOSE, pygame.WINDOWEXPOSED, pygame.WINDOWSIZECHANGED, pygame.WINDOWSHOWN, pygame.WINDOWHIDDEN, pygame.WINDOWFOCUSGAINED]:
-            pass
+            print("Screen released", flush=True)
+            if pressed and debounce_now > debounce:
+                print("Release event catched", flush=True)
+                press_delay = debounce_now - start_press
+                debounce = debounce_now + debounce_dly
+                pressed = False
+                i = 0
+                for zone in tactile_zones:
+                    print("Check #%d collide on %s" % (i, zone.name), flush=True)
+                    i+=1
+                    if zone.rect.collidepoint((int(event.x * screen.get_width()), int(event.y * screen.get_height()))) and zone.page == ui_page:
+                        print("Call %s" % zone.name)
+                        zone._cb(int(press_delay/1000000), zone.name)
+            else:
+                print("Release event ignored", flush=True)
         elif event.type == MQTT_TICK:
             mqtt.keepalive()
         elif event.type == WDOG_TICK:
@@ -280,31 +316,32 @@ def manage_events():
         elif event.type == TEMPO_TICK:
             tempoUpdate()
         elif event.type == TEMP_TICK:
-            print("Check for temp")
             now = datetime.now()
             cur_w = now.isoweekday()
             cur_h = now.hour
             cur_m = now.minute
 
             if sensor:
-                buf = "%0.1f°" % sensor.temperature
-                cur_temp = buf.replace(".", ",")
-                cur_hum  = "%d%%" % int(sensor.relative_humidity)
+                try:
+                    temp = sensor.temperature
+                    cur_hum  = "%d%%" % int(sensor.relative_humidity)
+                    buf = "%0.1f°" % temp
+                    cur_temp = buf.replace(".", ",")
 
-                for entry in global_vars.boiler_schedule:
-                    if entry["weekday"] == cur_w:
-                        if (cur_h > entry["start_h"] or
-                            (entry["start_h"] == cur_h and cur_m >= entry["start_m"])):
-                            target_temp = entry["target_temp"]
-                            print("Target temp for schedule starting at %02d:%02d on %d is %0.1f\n", entry["start_h"], entry["start_m"], entry["weekday"], entry["target_temp"])
-                            break
-                else:
                     target_temp = global_vars.boiler_schedule[-1]["target_temp"]
-                if target_temp > sensor.temperature:
-                    boiler_relay('ON')
-                else:
+                    for entry in global_vars.boiler_schedule:
+                        if entry["weekday"] == cur_w:
+                            if (cur_h > entry["start_h"] or
+                                (entry["start_h"] == cur_h and cur_m >= entry["start_m"])):
+                                target_temp = entry["target_temp"]
+                                break
                     if not forced:
-                        boiler_relay('OFF')
+                        if temp < target_temp - 0.5 and not boiler_relay():
+                            boiler_relay('ON')
+                        if temp > target_temp + 0.2 and boiler_relay():
+                            boiler_relay('OFF')
+                except:
+                    pass
         elif event.type == BOILER_OFF:
             forced = False
             boiler_relay('OFF')
